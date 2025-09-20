@@ -1,7 +1,7 @@
 import PocketBase from 'pocketbase';
 
 // Initialize PocketBase
-export const pb = new PocketBase('http://127.0.0.1:8090'); // Replace with your PocketBase URL
+export const pb = new PocketBase('http://10.6.30.112:8090/'); // Replace with your PocketBase URL
 
 export async function login(email: string, password: string) {
   try {
