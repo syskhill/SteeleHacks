@@ -40,29 +40,37 @@ const Home = () => {
         <p className="text-lg">Play the classic game of blackjack with your friends!</p>
       </header>
       <main className="flex flex-col items-center space-y-6">
-        {isLoggedIn ? (
-          <button
-            className="bg-yellow-500 text-black px-6 py-2 rounded-lg text-xl"
-            onClick={() => router.push('/game')}
-          >
-            Start Game
-          </button>
-        ) : (
-          <div className="space-y-4">
+        <button
+          className="bg-yellow-500 text-black px-6 py-2 rounded-lg text-xl w-64"
+          onClick={() => router.push('/table')}
+        >
+          Start Game
+        </button>
+        <div className="space-y-4 w-64">
+          {isLoggedIn ? (
             <button
-              className="bg-green-500 text-white px-6 py-2 rounded-lg text-xl w-full"
-              onClick={() => router.push('/login')}
+              className="bg-red-500 text-white px-6 py-2 rounded-lg text-xl w-full"
+              onClick={handleLogout}
             >
-              Login
+              Logout
             </button>
-            <button
-              className="bg-blue-500 text-white px-6 py-2 rounded-lg text-xl w-full"
-              onClick={() => router.push('/signup')}
-            >
-              Sign Up
-            </button>
-          </div>
-        )}
+          ) : (
+            <>
+              <button
+                className="bg-green-500 text-white px-6 py-2 rounded-lg text-xl w-full"
+                onClick={() => router.push('/login')}
+              >
+                Login
+              </button>
+              <button
+                className="bg-blue-500 text-white px-6 py-2 rounded-lg text-xl w-full"
+                onClick={() => router.push('/signup')}
+              >
+                Sign Up
+              </button>
+            </>
+          )}
+        </div>
       </main>
       <footer className="absolute bottom-0 left-0 right-0 text-center p-4 bg-black">
         <p>Powered by WVU & PITT</p>
