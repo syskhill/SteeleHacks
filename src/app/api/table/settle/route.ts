@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pb from '@/lib/pb';
-import { ActionRequest, Seat, User } from '@/app/api/types';
+import { Seat, User } from '@/app/api/types';
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  const tableId = params.id;
-  // For MVP, just fetch all seats for this table
-  const seatList = await pb.collection('seats').getFullList<Seat>({
-    filter: `tableId = "${tableId}"`
-  });
+export async function POST() {
+  // For MVP, just fetch all seats
+  const seatList = await pb.collection('seats').getFullList<Seat>();
 
   // For each seat, get user and bet
   for (const seat of seatList) {
@@ -24,7 +21,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     await pb.collection('seats').update(seat.id, { bet: 0 });
   }
 
-  // TODO: Update table/round state, dealer logic, etc.
+  // TODO: Update round state, dealer logic, etc.
 
-  return NextResponse.json({ message: 'Settlement complete', tableId });
+  return NextResponse.json({ message: 'Settlement complete' });
 }
