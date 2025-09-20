@@ -2,8 +2,6 @@
 // Run this script with: node pb_seed.js
 // Make sure PocketBase is running and the admin API token is set in PB_ADMIN_TOKEN env var.
 
-const fetch = require('node-fetch');
-
 const PB_URL = process.env.PB_URL || 'http://0.0.0.0:8090';
 //const PB_ADMIN_TOKEN = process.env.PB_ADMIN_TOKEN || '<YOUR_ADMIN_TOKEN_HERE>';
 
@@ -17,11 +15,18 @@ async function seed() {
     },
     body: JSON.stringify({
       username: 'demo',
+      email: 'demo@example.com',
+      password: 'demo12345',
+      passwordConfirm: 'demo12345',
       chips: 1000
     })
   });
   const user = await userRes.json();
-  console.log('Created user:', user.username, user.id);
+  if (!userRes.ok) {
+    console.error('Failed to create user:', user);
+  } else {
+    console.log('Created user:', user.username, user.id);
+  }
 
   // 2. Create a demo round for the user
   const roundRes = await fetch(`${PB_URL}/api/collections/rounds/records`, {
@@ -38,7 +43,11 @@ async function seed() {
     })
   });
   const round = await roundRes.json();
-  console.log('Created round:', round.id);
+  if (!roundRes.ok) {
+    console.error('Failed to create round:', round);
+  } else {
+    console.log('Created round:', round.id);
+  }
 }
 
 seed().catch(console.error);
