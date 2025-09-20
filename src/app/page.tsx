@@ -26,7 +26,7 @@ const Home = () => {
         {isLoggedIn ? (
           <button
             className="bg-yellow-500 text-black px-6 py-2 rounded-lg text-xl"
-            onClick={() => router.push('/game')}
+            onClick={() => router.push('/table')}
           >
             Start Game
           </button>
