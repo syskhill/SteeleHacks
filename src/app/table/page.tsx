@@ -123,16 +123,14 @@ const BlackjackTable: React.FC = () => {
   };
 
   const popCardFromDeck = (): Card => {
-    let drawn: Card | undefined;
-    setGame(prev => {
-      const newDeck = [...prev.deck];
-      drawn = newDeck.pop();
-      return { ...prev, deck: newDeck };
-    });
-    if (!drawn) throw new Error('Deck is empty');
+    if (game.deck.length === 0) throw new Error('Deck is empty');
+    const newDeck = [...game.deck];
+    const drawn = newDeck.pop()!;
+    // update deck in state
+    setGame(prev => ({ ...prev, deck: newDeck }));
     return drawn;
   };
-
+  
   // Betting functions
   const addChip = (amount: number) => {
     if (gameState.bankroll < amount) {
@@ -206,19 +204,24 @@ const BlackjackTable: React.FC = () => {
   const stand = () => {
     if (game.gameOver || game.playerHand.length === 0) return;
     
+    // Reveal dealer hidden card (UI uses game.gameOver flag to reveal)
     setGame(prev => ({ ...prev, gameOver: true }));
     
     animationRef.current = setTimeout(() => {
+      // Work with local copies so we can update state incrementally and compute score correctly
       let dealerHand = [...game.dealerHand];
+      let deckCopy = [...game.deck];
       let dealerScore = calculateHand(dealerHand);
-      
-      while (dealerScore < 17) {
-        const drawn = popCardFromDeck();
+
+      while (dealerScore < 17 && deckCopy.length > 0) {
+        const drawn = deckCopy.pop()!;
         dealerHand = [...dealerHand, drawn];
-        setGame(prev => ({ ...prev, dealerHand }));
         dealerScore = calculateHand(dealerHand);
+        // persist incremental changes to React state so UI updates as dealer draws
+        setGame(prev => ({ ...prev, dealerHand, deck: deckCopy }));
+        // optional small delay between cards could be added with chained timeouts for animation
       }
-      
+       
       const playerScore = calculateHand(game.playerHand);
       let result = 0;
       
