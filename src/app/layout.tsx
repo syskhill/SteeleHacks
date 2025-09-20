@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Back Yard Black Jack",
+  title: "Backyard Blackjack",
   description: "WVU vs Pitt Black Jack Game",
 };
 

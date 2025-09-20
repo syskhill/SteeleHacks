@@ -43,10 +43,10 @@ const SignUp = () => {
 
         try {
             const data = {
+                username: formData.name,
                 email: formData.email,
                 password: formData.password,
                 passwordConfirm: formData.passwordConfirm,
-                name: formData.name,
             };
 
             await pb.collection('users').create(data);
@@ -54,7 +54,7 @@ const SignUp = () => {
             // Auto login after successful signup
             await pb.collection('users').authWithPassword(formData.email, formData.password);
 
-            router.push('/'); // Redirect to home page
+            router.push('/');
         } catch (error: any) {
             setError(error.message || 'Something went wrong');
         }
@@ -62,7 +62,7 @@ const SignUp = () => {
 
     return (
         <div className="min-h-screen flex items-center justify-center flex-col">
-            <header className='text-5xl m-5 font-semibold'>Black Jack</header>
+            <header className='text-5xl m-5 font-semibold'>Blackjack</header>
             <Card className="w-full max-w-sm">
                 <CardHeader>
                     <CardTitle>Create an account</CardTitle>
