@@ -62,9 +62,9 @@ const SignUp = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center flex-col">
-            <header className='text-5xl m-5 font-semibold'>Blackjack</header>
-            <Card className="w-full max-w-sm">
+        <div className="min-h-screen bg-blue-900 text-white flex flex-col justify-center items-center">
+            <header className='text-5xl m-5 font-semibold'>Backyard Blackjack</header>
+            <Card className=" bg-yellow-500 w-full max-w-sm">
                 <CardHeader>
                     <CardTitle>Create an account</CardTitle>
                     <CardDescription>
@@ -81,7 +81,6 @@ const SignUp = () => {
                                     type="text"
                                     value={formData.name}
                                     onChange={handleChange}
-                                    placeholder="John Doe"
                                     required
                                 />
                             </div>
@@ -92,7 +91,7 @@ const SignUp = () => {
                                     type="email"
                                     value={formData.email}
                                     onChange={handleChange}
-                                    placeholder="john.doe@example.com"
+                                    
                                     required
                                 />
                             </div>
