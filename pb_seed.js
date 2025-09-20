@@ -4,8 +4,8 @@
 
 const fetch = require('node-fetch');
 
-const PB_URL = process.env.PB_URL || 'http://127.0.0.1:8090';
-const PB_ADMIN_TOKEN = process.env.PB_ADMIN_TOKEN || '<YOUR_ADMIN_TOKEN_HERE>';
+const PB_URL = process.env.PB_URL || 'http://0.0.0.0:8090';
+//const PB_ADMIN_TOKEN = process.env.PB_ADMIN_TOKEN || '<YOUR_ADMIN_TOKEN_HERE>';
 
 async function seed() {
   // 1. Create demo user
@@ -13,7 +13,7 @@ async function seed() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': PB_ADMIN_TOKEN
+      //'Authorization': PB_ADMIN_TOKEN
     },
     body: JSON.stringify({
       username: 'demo',
@@ -28,7 +28,7 @@ async function seed() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': PB_ADMIN_TOKEN
+      //'Authorization': PB_ADMIN_TOKEN
     },
     body: JSON.stringify({
       userId: user.id,
