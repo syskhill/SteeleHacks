@@ -113,7 +113,7 @@ const TablePage: React.FC = () => {
 
           {/* Betting Zone */}
           <div className="bg-black/40 backdrop-blur-md p-8 rounded-2xl shadow-2xl w-full max-w-md text-center space-y-6">
-            <h3 className="text-xl font-semibold text-yellow-400">Place Your Bet</h3>
+            <h3 className="text-xl font-semibold text-yellow-400">Place a Bet</h3>
             
             {/* Bet Area with Chips */}
             <div className="min-h-[100px] flex justify-center items-end gap-2 relative">
