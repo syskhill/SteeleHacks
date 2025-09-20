@@ -31,7 +31,7 @@ const StatsPage: React.FC = () => {
       <h1 className="text-4xl font-bold mb-8 text-yellow-400">Blackjack Stats</h1>
       
       {/* Stats Card */}
-      <div className="bg-blue-900 rounded-lg shadow-lg p-6 w-full max-w-md">
+      <div className="bg-blue-950 rounded-lg shadow-lg p-6 w-full max-w-md">
         <h2 className="text-2xl font-semibold mb-4 text-center text-yellow-400">Your Game Statistics</h2>
         <div className="grid grid-cols-1 gap-4">
           {/* Stat Item */}
