@@ -230,9 +230,9 @@ const BlackjackTable: React.FC = () => {
       else result = 0;
       
       const msg = result > 0 
-        ? 'You Win! 🎉' 
+        ? 'Panthers Win! 🎉' 
         : result < 0 
-        ? 'Dealer Wins! 😤' 
+        ? 'Mountaineers Win! Couches are burning! 😤' 
         : 'Push! 🤝';
       
       endGame(msg, result, result > 0 ? 'success' : result < 0 ? 'error' : 'info');
@@ -389,9 +389,9 @@ const BlackjackTable: React.FC = () => {
             {(gameMode === 'betting' ? '🎰 Blackjack Table' : '🎰 Blackjack Game')}
           </h1>
           <div className="bg-black/30 px-4 py-2 rounded-full text-sm flex items-center gap-4">
-            <span>Player: <span className="font-semibold">{gameState.player || 'Anonymous'}</span></span>
+            <span>Pitt Panthers: <span className="font-semibold">{gameState.player || 'Anonymous'}</span></span>
             <span className="bg-yellow-400/20 px-3 py-1 rounded-full text-xs font-bold">
-              Bankroll: ${gameState.bankroll.toLocaleString()}
+              Balance: ${gameState.bankroll.toLocaleString()}
             </span>
           </div>
         </div>
@@ -404,7 +404,7 @@ const BlackjackTable: React.FC = () => {
               {/* Bankroll Display */}
               <div className="text-center">
                 <h3 className="text-2xl font-bold text-yellow-400 drop-shadow-md">
-                  Bankroll: ${gameState.bankroll.toLocaleString()}
+                  Balance: ${gameState.bankroll.toLocaleString()}
                 </h3>
               </div>
 
@@ -496,7 +496,7 @@ const BlackjackTable: React.FC = () => {
                     Blackjack pays 3:2
                   </li>
                   <li className="relative pl-6 before:absolute before:left-0 before:text-yellow-400 before:content-['♦']">
-                    Dealer stands on soft 17
+                    Mountaineers stands on soft 17
                   </li>
                   <li className="relative pl-6 before:absolute before:left-0 before:text-yellow-400 before:content-['♦']">
                     Double down on any two cards
@@ -527,7 +527,7 @@ const BlackjackTable: React.FC = () => {
               {/* Dealer Section */}
               <div className="w-full">
                 <div className="text-center mb-4 space-y-2">
-                  <h3 className="text-xl font-bold text-lime-400">Dealer</h3>
+                  <h3 className="text-xl font-bold text-lime-400">West Virginia Mountaineers</h3>
                   <div className="text-lg font-semibold text-white/80">
                     Score: <span className="text-lime-400">{game.gameOver ? calculateHand(game.dealerHand) : getCardValue(game.dealerHand[0] || { value: '0' })}</span>
                   </div>
