@@ -191,3 +191,74 @@ export async function initializeUserBalance(userId: string, initialBalance: numb
     };
   }
 }
+
+// Round tracking functions
+interface RoundData {
+  playerHand: any[];
+  dealerHand: any[];
+  playerScore: number;
+  dealerScore: number;
+  betAmount: number;
+  result: 'win' | 'lose' | 'push';
+  payout: number;
+  isBlackjack: boolean;
+}
+
+export async function createRound(userId: string, seed: string): Promise<{ success: boolean; roundId?: string; error?: string }> {
+  try {
+    const record = await pb.collection('rounds').create({
+      userId: userId,
+      seed: seed,
+      startedAt: new Date().toISOString(),
+      outcomes: {}
+    });
+
+    return {
+      success: true,
+      roundId: record.id
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create round'
+    };
+  }
+}
+
+export async function updateRoundOutcomes(roundId: string, outcomes: RoundData): Promise<{ success: boolean; error?: string }> {
+  try {
+    await pb.collection('rounds').update(roundId, {
+      endedAt: new Date().toISOString(),
+      outcomes: outcomes
+    });
+
+    return {
+      success: true
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update round outcomes'
+    };
+  }
+}
+
+export async function getUserRounds(userId: string, page: number = 1, perPage: number = 10): Promise<{ success: boolean; rounds?: any[]; totalItems?: number; error?: string }> {
+  try {
+    const records = await pb.collection('rounds').getList(page, perPage, {
+      filter: `userId="${userId}"`,
+      sort: '-startedAt'
+    });
+
+    return {
+      success: true,
+      rounds: records.items,
+      totalItems: records.totalItems
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch user rounds'
+    };
+  }
+}

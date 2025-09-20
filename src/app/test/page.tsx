@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import Pocketbase from 'pocketbase';
 import { getAllUsers } from '@/lib/userApi';
+import { getUserRounds } from '@/lib/userApiSimple';
 
 const pocketbase = new Pocketbase('http://localhost:8090');
 
@@ -30,6 +31,7 @@ async function checkLogin() {
 
 const Test = () => {
     const [users, setUsers] = useState([]);
+    const [rounds, setRounds] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -39,14 +41,40 @@ const Test = () => {
         try {
             const result = await getAllUsers();
             if (result.success) {
-                setUsers(users);
+                setUsers(result.users);
                 console.log('Users fetched:', result.users);
             } else {
-                setError(error);
+                setError(result.error);
                 console.error('Error fetching users:', result.error);
             }
         } catch (err) {
             setError('Failed to fetch users');
+            console.error('Exception:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleGetUserRounds = async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const userId = pocketbase.authStore.record?.id;
+            if (!userId) {
+                setError('User not authenticated');
+                return;
+            }
+
+            const result = await getUserRounds(userId);
+            if (result.success) {
+                setRounds(result.rounds || []);
+                console.log('Rounds fetched:', result.rounds);
+            } else {
+                setError(result.error);
+                console.error('Error fetching rounds:', result.error);
+            }
+        } catch (err) {
+            setError('Failed to fetch rounds');
             console.error('Exception:', err);
         } finally {
             setLoading(false);
@@ -73,6 +101,14 @@ const Test = () => {
                 >
                     {loading ? 'Loading...' : 'Get All Users'}
                 </Button>
+
+                <Button
+                    onClick={handleGetUserRounds}
+                    disabled={loading}
+                    className="ml-2"
+                >
+                    {loading ? 'Loading...' : 'Get My Rounds'}
+                </Button>
             </div>
 
             {error && (
@@ -91,6 +127,40 @@ const Test = () => {
                             </li>
                         ))}
                     </ul>
+                </div>
+            )}
+
+            {rounds.length > 0 && (
+                <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded">
+                    <h3 className="font-semibold">Rounds Found ({rounds.length}):</h3>
+                    <div className="mt-2 space-y-2">
+                        {rounds.map((round: any) => (
+                            <div key={round.id} className="bg-white p-3 rounded border">
+                                <div className="text-sm">
+                                    <strong>Round ID:</strong> {round.id}
+                                </div>
+                                <div className="text-sm">
+                                    <strong>Started:</strong> {new Date(round.startedAt).toLocaleString()}
+                                </div>
+                                {round.endedAt && (
+                                    <div className="text-sm">
+                                        <strong>Ended:</strong> {new Date(round.endedAt).toLocaleString()}
+                                    </div>
+                                )}
+                                <div className="text-sm">
+                                    <strong>Seed:</strong> {round.seed}
+                                </div>
+                                {round.outcomes && Object.keys(round.outcomes).length > 0 && (
+                                    <div className="text-sm mt-2">
+                                        <strong>Outcomes:</strong>
+                                        <pre className="text-xs bg-gray-100 p-2 rounded mt-1">
+                                            {JSON.stringify(round.outcomes, null, 2)}
+                                        </pre>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
         </div>

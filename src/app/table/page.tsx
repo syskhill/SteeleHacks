@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {login, logout, isAuthenticated, pb} from '../../lib/auth';
-import { getUserBalance, updateUserBalance, initializeUserBalance } from '../../lib/userApiSimple';
+import { getUserBalance, updateUserBalance, initializeUserBalance, createRound, updateRoundOutcomes } from '../../lib/userApiSimple';
 
 // Type definitions
 interface GameState {
@@ -51,6 +51,7 @@ const BlackjackTable: React.FC = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userId, setUserId] = useState<string>('');
+  const [currentRoundId, setCurrentRoundId] = useState<string>('');
   
   const playerHandRef = useRef<HTMLDivElement>(null);
   const dealerHandRef = useRef<HTMLDivElement>(null);
@@ -228,18 +229,31 @@ const BlackjackTable: React.FC = () => {
   };
 
   // Game functions
-  const initGame = () => {
+  const initGame = async () => {
     const newDeck = createDeck();
     const playerHand = [newDeck.pop()!, newDeck.pop()!];
     const dealerHand = [newDeck.pop()!, newDeck.pop()!];
-    
+
+    // Create a round record if user is authenticated
+    if (isAuthenticated && userId) {
+      try {
+        const seed = Math.random().toString(36).substring(2, 15);
+        const roundResult = await createRound(userId, seed);
+        if (roundResult.success && roundResult.roundId) {
+          setCurrentRoundId(roundResult.roundId);
+        }
+      } catch (error) {
+        console.error('Failed to create round:', error);
+      }
+    }
+
     setGame({
       deck: newDeck,
       playerHand,
       dealerHand,
       gameOver: false
     });
-    
+
     setMessage({ text: '', type: 'info' });
   };
 
@@ -328,28 +342,58 @@ const BlackjackTable: React.FC = () => {
     setTimeout(() => setMessage({ text: '', type: 'info' }), 2000);
   };
 
-  const endGame = (text: string, result: number, type: 'error' | 'success' | 'info') => {
+  const endGame = async (text: string, result: number, type: 'error' | 'success' | 'info') => {
     setMessage({ text, type });
-    
-    // Update bankroll based on result
+
+    const playerScore = calculateHand(game.playerHand);
+    const dealerScore = calculateHand(game.dealerHand);
+    const isBlackjack = game.playerHand.length === 2 && playerScore === 21;
+
+    // Calculate payout
+    let payout = 0;
+    let resultString: 'win' | 'lose' | 'push' = 'lose';
+
     if (result === 1) {
-      const isBlackjack = game.playerHand.length === 2 && calculateHand(game.playerHand) === 21;
-      const payout = isBlackjack ? gameState.bet * 1.5 : gameState.bet;
+      resultString = 'win';
+      payout = isBlackjack ? gameState.bet * 1.5 : gameState.bet;
       setGameState(prev => ({
         ...prev,
         bankroll: prev.bankroll + gameState.bet + payout
       }));
     } else if (result === 0) {
+      resultString = 'push';
+      payout = 0;
       setGameState(prev => ({
         ...prev,
         bankroll: prev.bankroll + prev.bet
       }));
     }
-    // Loss: bet already deducted
-    
+    // Loss: bet already deducted, payout = 0
+
+    // Update round outcomes if authenticated and round exists
+    if (isAuthenticated && userId && currentRoundId) {
+      try {
+        const roundData = {
+          playerHand: game.playerHand,
+          dealerHand: game.dealerHand,
+          playerScore: playerScore,
+          dealerScore: dealerScore,
+          betAmount: gameState.bet,
+          result: resultString,
+          payout: payout,
+          isBlackjack: isBlackjack
+        };
+
+        await updateRoundOutcomes(currentRoundId, roundData);
+        console.log('Round outcomes updated:', roundData);
+      } catch (error) {
+        console.error('Failed to update round outcomes:', error);
+      }
+    }
+
     setGame(prev => ({ ...prev, gameOver: true }));
     setGameMode('gameOver');
-    
+
     // Return to betting mode after delay
     setTimeout(() => {
       const playAgain = confirm('Play another hand?');
@@ -367,6 +411,7 @@ const BlackjackTable: React.FC = () => {
     resetHands();
     setGameMode('betting');
     clearBet(); // Reset bet for new round
+    setCurrentRoundId(''); // Clear current round
   };
 
   const resetHands = () => {
