@@ -27,12 +27,12 @@ const StatsPage: React.FC = () => {
   const stats = mockStats;
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-4">
-      <h1 className="text-4xl font-bold mb-8">Blackjack Stats</h1>
+    <div className="min-h-screen bg-blue-800 text-white flex flex-col items-center justify-center p-4">
+      <h1 className="text-4xl font-bold mb-8 text-yellow-400">Blackjack Stats</h1>
       
       {/* Stats Card */}
-      <div className="bg-gray-800 rounded-lg shadow-lg p-6 w-full max-w-md">
-        <h2 className="text-2xl font-semibold mb-4 text-center">Your Game Statistics</h2>
+      <div className="bg-blue-900 rounded-lg shadow-lg p-6 w-full max-w-md">
+        <h2 className="text-2xl font-semibold mb-4 text-center text-yellow-400">Your Game Statistics</h2>
         <div className="grid grid-cols-1 gap-4">
           {/* Stat Item */}
           <div className="flex justify-between items-center p-4 bg-gray-700 rounded-md">
@@ -63,7 +63,7 @@ const StatsPage: React.FC = () => {
       </div>
 
       {/* Optional: Add a button to refresh stats or navigate */}
-      <button className="mt-6 px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-lg font-semibold transition-colors">
+      <button className="mt-6 px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-lg font-semibold transition-colors text-yellow-400">
         Refresh Stats
       </button>
     </div>
