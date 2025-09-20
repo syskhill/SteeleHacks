@@ -16,7 +16,6 @@ const Home = () => {
       const auth = await isAuthenticated();
       setIsLoggedIn(auth);
 
-      // Get username if logged in
       if (auth && pocketbase.authStore.record) {
         setUsername(pocketbase.authStore.record.username);
       }
