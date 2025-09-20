@@ -47,6 +47,7 @@ const SignUp = () => {
                 email: formData.email,
                 password: formData.password,
                 passwordConfirm: formData.passwordConfirm,
+                chips: 1000,
             };
 
             await pb.collection('users').create(data);
