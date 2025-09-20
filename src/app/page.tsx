@@ -39,7 +39,7 @@ const Home = () => {
         )}
         <p className="text-lg">Play the classic game of blackjack with your friends!</p>
       </header>
-      <main className="flex flex-col items-center space-y-6 mt-60">
+      <main className="flex flex-col items-center space-y-6 mt-80">
         <button
           className="bg-yellow-500 text-black px-6 py-2 rounded-lg text-xl w-64"
           onClick={() => router.push('/table')}
