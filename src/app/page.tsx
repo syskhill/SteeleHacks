@@ -31,15 +31,15 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen bg-blue-900 text-white flex flex-col justify-center items-center">
-      <header className="text-center p-10">
-        <h1 className="text-4xl font-bold mb-4">Welcome to the Blackjack Game</h1>
+    <div className="min-h-screen bg-[url('/wood.jpg')] bg-cover bg-repeat text-white flex flex-col items-center">
+      <header className="text-center pt-20 p-10">
+        <h1 className="text-4xl font-bold mb-4">Backyard Blackjack</h1>
         {isLoggedIn && username && (
           <p className="text-xl text-yellow-400 mb-4">Playing as: {username}</p>
         )}
         <p className="text-lg">Play the classic game of blackjack with your friends!</p>
       </header>
-      <main className="flex flex-col items-center space-y-6">
+      <main className="flex flex-col items-center space-y-6 mt-60">
         <button
           className="bg-yellow-500 text-black px-6 py-2 rounded-lg text-xl w-64"
           onClick={() => router.push('/table')}
