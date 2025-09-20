@@ -386,7 +386,7 @@ const BlackjackTable: React.FC = () => {
             text-3xl font-bold drop-shadow-lg transition-colors duration-500
             ${gameMode === 'betting' ? 'text-yellow-400' : 'text-lime-400'}
           `}>
-            {(gameMode === 'betting' ? '🎰 Blackjack Table' : '🎰 Blackjack Game')}
+            {(gameMode === 'betting' ? '🎰 Backyard Blackjack' : '🎰 Backyard Blackjack')}
           </h1>
           <div className="bg-black/30 px-4 py-2 rounded-full text-sm flex items-center gap-4">
             <span>Pitt Panthers: <span className="font-semibold">{gameState.player || 'Anonymous'}</span></span>
@@ -417,15 +417,17 @@ const BlackjackTable: React.FC = () => {
                   {chips.map((amount, index) => (
                     <div
                       key={index}
-                      className={`
-                        w-12 h-12 rounded-full bg-gradient-to-r from-yellow-400 to-yellow-300
-                        flex items-center justify-center text-xs font-bold text-blue-900
-                        shadow-lg animate-bounce-in relative -mb-6 z-10
-                        ${message.type === 'error' ? 'animate-shake' : ''}
-                      `}
-                      style={{ animationDelay: `${index * 0.1}s` }}
+                      className={`chip chip-${amount} animate-bounce-in relative z-10 ${message.type === 'error' ? 'animate-shake' : ''}`}
+                      style={{
+                        animationDelay: `${index * 0.08}s`,
+                        transform: `translateY(${index * -8}px) rotate(${index % 2 ? '-6deg' : '6deg'})`
+                      }}
+                      title={`$${amount}`}
                     >
-                      ${amount}
+                      <div className="chip-stripes" aria-hidden />
+                      <div className="chip-inner">
+                        <div className="chip-value">${amount}</div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -437,36 +439,26 @@ const BlackjackTable: React.FC = () => {
 
                 {/* Chip Buttons */}
                 <div className="flex gap-3 justify-center flex-wrap">
-                  {[5, 10, 25, 50, 100].map((amount) => (
-                    <button
-                      key={amount}
-                      className={`
-                        w-16 h-16 rounded-full border-none font-bold text-base cursor-pointer
-                        transition-all duration-300 bg-gradient-to-r from-yellow-400 to-yellow-300
-                        text-blue-900 shadow-lg hover:scale-110 hover:shadow-yellow-400/40
-                        disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
-                        ${gameState.bet >= gameState.bankroll * 0.5 ? 'opacity-50 cursor-not-allowed' : ''}
-                      `}
-                      onClick={() => addChip(amount)}
-                      disabled={gameState.bet >= gameState.bankroll * 0.5}
-                    >
-                      ${amount}
-                    </button>
-                  ))}
-                  
-                  <button
-                    className={`
-                      w-16 h-16 rounded-full border-none font-bold text-base cursor-pointer
-                      transition-all duration-300 bg-gradient-to-r from-red-500 to-red-400
-                      text-white shadow-lg hover:scale-110 hover:shadow-red-400/40
-                      disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
-                      ${chips.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}
-                    `}
-                    onClick={clearBet}
-                    disabled={chips.length === 0}
-                  >
-                    Clear
-                  </button>
+                  {[5, 10, 25, 50, 100].map((amount) => {
+                    const disabled = gameState.bet >= gameState.bankroll * 0.5;
+                    return (
+                      <button
+                        key={amount}
+                        onClick={() => addChip(amount)}
+                        disabled={disabled}
+                        className={`chip chip-${amount} relative z-10 m-0 p-0 border-none cursor-pointer transition-transform duration-200
+                          ${disabled ? 'opacity-50 cursor-not-allowed transform-none' : 'hover:-translate-y-1 active:translate-y-0.5'}`}
+                        title={`Add $${amount}`}
+                        aria-label={`Add $${amount} chip`}
+                        type="button"
+                      >
+                        <div className="chip-stripes" aria-hidden />
+                        <div className="chip-inner">
+                          <div className="chip-value">${amount}</div>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {/* Start Game Button */}
@@ -581,7 +573,7 @@ const BlackjackTable: React.FC = () => {
               {/* Player Section */}
               <div className="w-full">
                 <div className="text-center mb-4 space-y-2">
-                  <h3 className="text-xl font-bold text-lime-400">Player</h3>
+                  <h3 className="text-xl font-bold text-lime-400">Pitt Panthers</h3>
                   <div className="text-lg font-semibold text-white/80">
                     Score: <span className="text-lime-400">{calculateHand(game.playerHand)}</span>
                   </div>
@@ -779,6 +771,84 @@ const BlackjackTable: React.FC = () => {
           transition: all 0.3s ease;
         }
         
+        .card:hover {
+          transform: scale(1.05) !important;
+          box-shadow: 0 8px 25px rgba(0,0,0,0.4) !important;
+        }
+
+        /* Realistic chip styles */
+        .chip {
+          width: 56px;
+          height: 56px;
+          border-radius: 9999px;
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 800;
+          color: #fff;
+          box-shadow: 0 8px 22px rgba(0,0,0,0.45), inset 0 2px 6px rgba(255,255,255,0.06);
+          transform-origin: center bottom;
+          transition: transform 160ms ease, box-shadow 160ms ease;
+        }
+
+        .chip:hover {
+          transform: translateY(-6px) scale(1.03);
+          box-shadow: 0 12px 28px rgba(0,0,0,0.55);
+        }
+
+        .chip-inner {
+          width: 70%;
+          height: 70%;
+          border-radius: 9999px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.18);
+        }
+
+        .chip-stripes {
+          position: absolute;
+          inset: 6px;
+          border-radius: 9999px;
+          z-index: 1;
+          background: repeating-linear-gradient(90deg, rgba(255,255,255,0.06) 0 6px, transparent 6px 12px);
+          mix-blend-mode: overlay;
+          opacity: 0.25;
+          pointer-events: none;
+        }
+
+        .chip-value {
+          font-size: 12px;
+          line-height: 1;
+          text-shadow: 0 2px 6px rgba(0,0,0,0.45);
+        }
+
+        /* color variants */
+        .chip-5 { background: linear-gradient(180deg,#f5f5f5,#d6d6d6); color:#111; }
+        .chip-10 { background: linear-gradient(180deg,#ffd86b,#ffb84a); }
+        .chip-25 { background: linear-gradient(180deg,#ff6b6b,#c43b3b); }
+        .chip-50 { background: linear-gradient(180deg,#6bb6ff,#1e88e5); }
+        .chip-100 { background: linear-gradient(180deg,#c78bff,#7a3cff); }
+
+        /* thin outer ring for visual separation */
+        .chip::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          border-radius: 9999px;
+          box-shadow: inset 0 0 0 4px rgba(255,255,255,0.06);
+          pointer-events: none;
+        }
+
+        /* small responsive adjustment for narrow screens */
+        @media (max-width: 640px) {
+          .chip { width:48px; height:48px; }
+          .chip-inner { width:66%; height:66%; }
+          .chip-value { font-size:11px; }
+        }
+
         .card:hover {
           transform: scale(1.05) !important;
           box-shadow: 0 8px 25px rgba(0,0,0,0.4) !important;
