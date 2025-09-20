@@ -45,7 +45,7 @@ const Login = () => {
     };
 
     return (
-        <div className="min-h-screen bg-blue-900 text-white flex flex-col justify-center items-center">
+        <div className="min-h-screen bg-[url('/wood.jpg')] text-white flex flex-col justify-center items-center">
             <header className='text-5xl m-5 font-semibold'>Backyard Blackjack</header>
             {isLoggedIn ? (
                 <Card className="w-full max-w-sm">
