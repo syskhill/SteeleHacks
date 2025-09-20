@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import {login, logout, isAuthenticated, pb} from '../../lib/auth';
+import { getUserBalance, updateUserBalance, initializeUserBalance } from '../../lib/userApiSimple';
 
 // Type definitions
 interface GameState {
@@ -47,31 +49,77 @@ const BlackjackTable: React.FC = () => {
     type: 'info'
   });
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userId, setUserId] = useState<string>('');
   
   const playerHandRef = useRef<HTMLDivElement>(null);
   const dealerHandRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load state from localStorage on mount
+  // Load state from localStorage on mount and check authentication
   useEffect(() => {
-    const storedState = localStorage.getItem('blackjackState');
-    if (storedState) {
-      const parsedState = JSON.parse(storedState) as GameState;
-      setGameState(parsedState);
-      
-      // If bet exists, start in betting mode with chips
-      if (parsedState.bet > 0) {
-        setChips([parsedState.bet]);
-        setGameMode('betting');
+    const initializeGame = async () => {
+      // Check authentication
+      const authValid = pb.authStore.isValid;
+      const currentUserId = pb.authStore.record?.id;
+
+      setIsAuthenticated(authValid);
+      setUserId(currentUserId || '');
+
+      if (authValid && currentUserId) {
+        // User is authenticated, load balance from PocketBase
+        try {
+          const balanceResult = await initializeUserBalance(currentUserId);
+          if (balanceResult.success && balanceResult.balance !== undefined) {
+            setGameState(prev => ({
+              ...prev,
+              bankroll: balanceResult.balance,
+              player: pb.authStore.record?.email || 'Anonymous'
+            }));
+          }
+        } catch (error) {
+          console.error('Failed to load user balance:', error);
+        }
+      } else {
+        // Not authenticated, load from localStorage
+        const storedState = localStorage.getItem('blackjackState');
+        if (storedState) {
+          const parsedState = JSON.parse(storedState) as GameState;
+          setGameState(parsedState);
+
+          // If bet exists, start in betting mode with chips
+          if (parsedState.bet > 0) {
+            setChips([parsedState.bet]);
+            setGameMode('betting');
+          }
+        }
       }
-    }
-    setIsInitialized(true);
+
+      setIsInitialized(true);
+    };
+
+    initializeGame();
   }, []);
 
-  // Save state to localStorage whenever it changes
+  // Save state to localStorage and sync balance with PocketBase
   useEffect(() => {
-    localStorage.setItem('blackjackState', JSON.stringify(gameState));
-  }, [gameState]);
+    const syncBalance = async () => {
+      localStorage.setItem('blackjackState', JSON.stringify(gameState));
+
+      // If user is authenticated, sync balance with PocketBase
+      if (isAuthenticated && userId && gameState.bankroll !== undefined) {
+        try {
+          await updateUserBalance(userId, gameState.bankroll);
+        } catch (error) {
+          console.error('Failed to sync balance with PocketBase:', error);
+        }
+      }
+    };
+
+    if (isInitialized) {
+      syncBalance();
+    }
+  }, [gameState, isAuthenticated, userId, isInitialized]);
 
   // Cleanup animations
   useEffect(() => {
@@ -133,22 +181,30 @@ const BlackjackTable: React.FC = () => {
   
   // Betting functions
   const addChip = (amount: number) => {
+    // Check if user has sufficient balance
     if (gameState.bankroll < amount) {
       showMessage('Insufficient funds!', 'error');
       return;
     }
-    
-    if (gameState.bet >= gameState.bankroll * 0.5) {
+
+    // Check if bet would exceed balance
+    if (gameState.bet + amount > gameState.bankroll) {
+      showMessage('Cannot bet more than your balance!', 'error');
+      return;
+    }
+
+    // Limit maximum bet to prevent overbetting
+    if (gameState.bet + amount >= gameState.bankroll) {
       showMessage('Maximum bet reached!', 'error');
       return;
     }
-    
+
     setGameState(prev => ({
       ...prev,
       bet: prev.bet + amount,
       bankroll: prev.bankroll - amount
     }));
-    
+
     setChips(prev => [...prev, amount]);
   };
 
@@ -240,22 +296,24 @@ const BlackjackTable: React.FC = () => {
   };
 
   const doubleDown = () => {
+    // Check if user has enough balance to double the bet
     if (gameState.bankroll < gameState.bet) {
       showMessage('Insufficient funds to double down!', 'error');
       return;
     }
-    
+
     if (game.playerHand.length !== 2) {
       showMessage('Can only double down on first two cards!', 'error');
       return;
     }
-    
+
+    // Subtract additional bet amount from bankroll
     setGameState(prev => ({
       ...prev,
       bankroll: prev.bankroll - prev.bet,
       bet: prev.bet * 2
     }));
-    
+
     hit();
     setTimeout(() => stand(), 1000);
   };
@@ -390,8 +448,9 @@ const BlackjackTable: React.FC = () => {
           </h1>
           <div className="bg-black/30 px-4 py-2 rounded-full text-sm flex items-center gap-4">
             <span>Pitt Panthers: <span className="font-semibold">{gameState.player || 'Anonymous'}</span></span>
-            <span className="bg-yellow-400/20 px-3 py-1 rounded-full text-xs font-bold">
+            <span className={`px-3 py-1 rounded-full text-xs font-bold ${isAuthenticated ? 'bg-green-400/20 text-green-300' : 'bg-yellow-400/20'}`}>
               Balance: ${gameState.bankroll.toLocaleString()}
+              {isAuthenticated && <span className="ml-1">🔐</span>}
             </span>
           </div>
         </div>
@@ -440,7 +499,7 @@ const BlackjackTable: React.FC = () => {
                 {/* Chip Buttons */}
                 <div className="flex gap-3 justify-center flex-wrap">
                   {[5, 10, 25, 50, 100].map((amount) => {
-                    const disabled = gameState.bet >= gameState.bankroll * 0.5;
+                    const disabled = gameState.bankroll < amount || (gameState.bet + amount > gameState.bankroll);
                     return (
                       <button
                         key={amount}
@@ -448,7 +507,7 @@ const BlackjackTable: React.FC = () => {
                         disabled={disabled}
                         className={`chip chip-${amount} relative z-10 m-0 p-0 border-none cursor-pointer transition-transform duration-200
                           ${disabled ? 'opacity-50 cursor-not-allowed transform-none' : 'hover:-translate-y-1 active:translate-y-0.5'}`}
-                        title={`Add $${amount}`}
+                        title={disabled ? `Insufficient funds for $${amount}` : `Add $${amount}`}
                         aria-label={`Add $${amount} chip`}
                         type="button"
                       >
