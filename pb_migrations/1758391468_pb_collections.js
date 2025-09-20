@@ -1,0 +1,43 @@
+/// <reference path="../pb_data/types.d.ts" />
+migrate(
+  (app) => {
+    // Create 'users' collection
+    app.createCollection('users', {
+      type: 'base',
+      schema: [
+        { name: 'username', type: 'text', required: true, unique: true },
+        { name: 'chips', type: 'number', required: true, options: { min: 0, max: 1000000, default: 1000 } }
+      ],
+      listRule: '@request.auth.id = id',
+      viewRule: '@request.auth.id = id',
+      createRule: '',
+      updateRule: '@request.auth.id = id',
+      deleteRule: '@request.auth.id = id',
+      indexes: ['CREATE UNIQUE INDEX idx_username ON users (username)']
+    });
+
+    // Create 'rounds' collection
+    app.createCollection('rounds', {
+      type: 'base',
+      schema: [
+        { name: 'userId', type: 'relation', required: true, options: { collectionId: 'users' } },
+        { name: 'seed', type: 'text', required: true },
+        { name: 'startedAt', type: 'date', required: true },
+        { name: 'endedAt', type: 'date', required: false },
+        { name: 'outcomes', type: 'json', required: true }
+      ],
+      listRule: 'userId = @request.auth.id',
+      viewRule: 'userId = @request.auth.id',
+      createRule: 'userId = @request.auth.id',
+      updateRule: 'userId = @request.auth.id',
+      deleteRule: 'userId = @request.auth.id',
+      indexes: ['CREATE INDEX idx_userId ON rounds (userId)']
+    });
+  },
+  (app) => {
+    // Drop 'rounds' collection
+    app.deleteCollection('rounds');
+    // Drop 'users' collection
+    app.deleteCollection('users');
+  }
+);
