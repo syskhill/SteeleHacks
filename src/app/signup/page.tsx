@@ -43,21 +43,32 @@ const SignUp = () => {
 
         try {
             const data = {
-                username: formData.name,
                 email: formData.email,
                 password: formData.password,
                 passwordConfirm: formData.passwordConfirm,
+                username: formData.name,
                 chips: 1000,
             };
 
-            await pb.collection('users').create(data);
+            console.log('Creating user with data:', { ...data, password: '[HIDDEN]', passwordConfirm: '[HIDDEN]' });
+
+            // Create user in auth collection
+            const record = await pb.collection('users').create(data);
+
+            console.log('User created successfully:', record);
 
             // Auto login after successful signup
-            await pb.collection('users').authWithPassword(formData.email, formData.password);
+            const authData = await pb.collection('users').authWithPassword(formData.email, formData.password);
+
+            console.log('Login successful:', authData);
 
             router.push('/');
         } catch (error: any) {
-            setError(error.message || 'Something went wrong');
+            console.error('Signup error:', error);
+            if (error.response?.data) {
+                console.error('Error details:', error.response.data);
+            }
+            setError(error.message || 'Something went wrong during signup');
         }
     };
 

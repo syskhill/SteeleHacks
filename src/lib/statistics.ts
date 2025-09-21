@@ -178,9 +178,16 @@ export async function getUserStatistics(userId: string): Promise<{ success: bool
               optimalDecisions++;
               roundOptimalDecisions++;
             } else {
-              if (analysis.deviation === 'MINOR') minorDeviations++;
-              else if (analysis.deviation === 'MODERATE') moderateDeviations++;
-              else majorDeviations++;
+              // Only count deviations if this was actually a suboptimal play
+              // Skip counting strategy deviations for forced actions (like stand after double down)
+              const isFirstAction = round.actions.indexOf(action) === 0;
+              const isStandAfterDouble = action.action === 'STAND' && round.actions.length > 1 && round.actions[0].action === 'DOUBLE';
+
+              if (isFirstAction || !isStandAfterDouble) {
+                if (analysis.deviation === 'MINOR') minorDeviations++;
+                else if (analysis.deviation === 'MODERATE') moderateDeviations++;
+                else majorDeviations++;
+              }
             }
           }
 
