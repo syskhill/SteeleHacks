@@ -24,19 +24,36 @@ export async function login(email: string, password: string) {
 
 export async function googleLogin() {
   try {
-    const authData = await pb.collection("users").authWithOAuth2({ provider: "google" })
+    // PocketBase OAuth2 with Google
+    const authData = await pb.collection("users").authWithOAuth2({
+      provider: "google",
+      createData: {
+        chips: 1000, // Default starting chips for new Google users
+      }
+    });
+
+    console.log("Google OAuth successful");
     console.log("Is valid?", pb.authStore.isValid);
-    console.log("Token:", pb.authStore.token);
     console.log("User:", pb.authStore.record);
 
     return {
       success: true,
       user: authData?.record,
     };
-  } catch (error) {
+  } catch (error: any) {
+    console.error("Google login error:", error);
+
+    // More specific error handling
+    let errorMessage = "Google login failed";
+    if (error.message) {
+      errorMessage = error.message;
+    } else if (error.data?.message) {
+      errorMessage = error.data.message;
+    }
+
     return {
       success: false,
-      error: "Google login failed",
+      error: errorMessage,
     };
   }
 }

@@ -22,26 +22,61 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoggedIn, setIsLoggedIn] = useState(isAuthenticated());
+    const [loading, setLoading] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        setLoading(true);
 
-        const result = await login(email, password);
-        if (result.success) {
-            setIsLoggedIn(true);
-            setEmail('');
-            setPassword('');
-            console.log('Logged in successfully', result.user);
-            router.push('/table'); // Redirect to table page after successful login
-        } else {
-            setError(result.error || 'Login failed');
+        try {
+            const result = await login(email, password);
+            if (result.success) {
+                setIsLoggedIn(true);
+                setEmail('');
+                setPassword('');
+                console.log('Logged in successfully', result.user);
+                router.push('/table'); // Redirect to table page after successful login
+            } else {
+                setError(result.error || 'Login failed');
+            }
+        } catch (error) {
+            setError('Login failed');
+        } finally {
+            setLoading(false);
         }
     };
 
     const handleLogout = () => {
         logout();
         setIsLoggedIn(false);
+    };
+
+    const handleGuestMode = () => {
+        // Continue as guest - just redirect to table without authentication
+        router.push('/table');
+    };
+
+    const handleGoogleLogin = async () => {
+        setError('');
+        setGoogleLoading(true);
+
+        try {
+            const result = await googleLogin();
+            if (result.success) {
+                setIsLoggedIn(true);
+                console.log('Google login successful', result.user);
+                router.push('/table'); // Redirect to table page after successful login
+            } else {
+                setError(result.error || 'Google login failed');
+            }
+        } catch (error) {
+            console.error('Google login error:', error);
+            setError('Google login failed');
+        } finally {
+            setGoogleLoading(false);
+        }
     };
 
     return (
@@ -66,9 +101,6 @@ const Login = () => {
                         <CardDescription>
                             Enter your email below to login to your account
                         </CardDescription>
-                        <CardAction>
-                            <Button variant="link">Sign Up</Button>
-                        </CardAction>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleSubmit}>
@@ -106,12 +138,39 @@ const Login = () => {
                                     <div className="text-red-500 text-sm">{error}</div>
                                 )}
                             </div>
-                            <CardFooter className="flex-col gap-2 px-0">
-                                <Button type="submit" className="w-full">
-                                    Login
+                            <CardFooter className="flex-col gap-2 px-0 mt-6">
+                                <Button type="submit" className="w-full" disabled={loading || googleLoading}>
+                                    {loading ? 'Logging in...' : 'Login'}
                                 </Button>
-                                <Button variant="outline" className="w-full" onClick={() => googleLogin()}>
-                                    Login with Google
+                                <Button
+                                    variant="outline"
+                                    className="w-full"
+                                    onClick={handleGoogleLogin}
+                                    disabled={loading || googleLoading}
+                                >
+                                    {googleLoading ? 'Connecting to Google...' : 'Login with Google'}
+                                </Button>
+                                <div className="flex items-center gap-2 w-full my-2">
+                                    <div className="flex-1 h-px bg-gray-300"></div>
+                                    <span className="text-sm text-gray-500">or</span>
+                                    <div className="flex-1 h-px bg-gray-300"></div>
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    className="w-full"
+                                    onClick={handleGuestMode}
+                                    type="button"
+                                    disabled={loading || googleLoading}
+                                >
+                                    Continue as Guest
+                                </Button>
+                                <Button
+                                    variant="link"
+                                    className="w-full"
+                                    onClick={() => router.push('/signup')}
+                                    type="button"
+                                >
+                                    Don't have an account? Sign up
                                 </Button>
                             </CardFooter>
                         </form>
