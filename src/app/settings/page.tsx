@@ -1,207 +1,328 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { User, Lock, Eye, EyeOff, Check, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { login, logout, isAuthenticated, pb } from '../../lib/auth';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
-export default function SettingsPage() {
-  // User info state
-  const [userInfo] = useState({
-    email: 'player@example.com',
-    joinDate: '2024-01-15',
-    gamesPlayed: 147,
-    winRate: 68.2
-  });
+const Settings: React.FC = () => {
+    const router = useRouter();
+    const [authenticated, setAuthenticated] = useState(false);
+    const [userEmail, setUserEmail] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' }>({ text: '', type: 'info' });
 
-  // Password change state
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
-  const [showPasswords, setShowPasswords] = useState({
-    current: false,
-    new: false,
-    confirm: false
-  });
-  const [passwordChangeStatus, setPasswordChangeStatus] = useState<{
-    type: 'success' | 'error';
-    message: string;
-  } | null>(null);
+    // Login form state
+    const [loginForm, setLoginForm] = useState({
+        email: '',
+        password: ''
+    });
 
-  const handlePasswordChange = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setPasswordChangeStatus({ type: 'error', message: 'New passwords do not match' });
-      return;
+    // Password change form state
+    const [passwordForm, setPasswordForm] = useState({
+        oldPassword: '',
+        password: '',
+        passwordConfirm: ''
+    });
+
+    useEffect(() => {
+        checkAuthStatus();
+    }, []);
+
+    const checkAuthStatus = () => {
+        const authValid = pb.authStore.isValid;
+        setAuthenticated(authValid);
+
+        if (authValid && pb.authStore.record) {
+            setUserEmail(pb.authStore.record.email || '');
+        }
+
+        setLoading(false);
+    };
+
+    const showMessage = (text: string, type: 'success' | 'error' | 'info') => {
+        setMessage({ text, type });
+        setTimeout(() => setMessage({ text: '', type: 'info' }), 5000);
+    };
+
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+
+        try {
+            const result = await login(loginForm.email, loginForm.password);
+            if (result.success) {
+                setAuthenticated(true);
+                setUserEmail(loginForm.email);
+                setLoginForm({ email: '', password: '' });
+                showMessage('Login successful!', 'success');
+            } else {
+                showMessage(result.error || 'Login failed', 'error');
+            }
+        } catch (error) {
+            showMessage('Login failed', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleLogout = async () => {
+        setLoading(true);
+        try {
+            await logout();
+            setAuthenticated(false);
+            setUserEmail('');
+            showMessage('Logged out successfully', 'success');
+        } catch (error) {
+            showMessage('Logout failed', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handlePasswordChange = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (passwordForm.password !== passwordForm.passwordConfirm) {
+            showMessage('New passwords do not match', 'error');
+            return;
+        }
+
+        if (passwordForm.password.length < 8) {
+            showMessage('Password must be at least 8 characters long', 'error');
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            const userId = pb.authStore.record?.id;
+            if (!userId) {
+                showMessage('User not authenticated', 'error');
+                return;
+            }
+
+            // Update password
+            await pb.collection('users').update(userId, {
+                oldPassword: passwordForm.oldPassword,
+                password: passwordForm.password,
+                passwordConfirm: passwordForm.passwordConfirm,
+            });
+
+            setPasswordForm({ oldPassword: '', password: '', passwordConfirm: '' });
+            showMessage('Password changed successfully!', 'success');
+        } catch (error: any) {
+            console.error('Password change error:', error);
+            showMessage(error.message || 'Failed to change password', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleInputChange = (form: 'login' | 'password', field: string, value: string) => {
+        if (form === 'login') {
+            setLoginForm(prev => ({ ...prev, [field]: value }));
+        } else {
+            setPasswordForm(prev => ({ ...prev, [field]: value }));
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-yellow-400 mx-auto mb-4"></div>
+                    <p className="text-white text-xl">Loading...</p>
+                </div>
+            </div>
+        );
     }
-    
-    if (passwordData.newPassword.length < 6) {
-      setPasswordChangeStatus({ type: 'error', message: 'Password must be at least 6 characters' });
-      return;
-    }
-    
-    // Simulate password change
-    setTimeout(() => {
-      setPasswordChangeStatus({ type: 'success', message: 'Password changed successfully!' });
-      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => setPasswordChangeStatus(null), 3000);
-    }, 1000);
-  };
 
-  const toggleShowPassword = (field: 'current' | 'new' | 'confirm') => {
-    setShowPasswords(prev => ({
-      ...prev,
-      [field]: !prev[field]
-    }));
-  };
+    return (
+        <div className="min-h-screen bg-[url('/wood.jpg')] bg-cover bg-center bg-no-repeat bg-fixed text-white flex flex-col">
+            {/* Header */}
+            <div className="flex justify-between items-center p-4 border-b-2 border-white/20">
+                <button
+                    onClick={() => router.push('/table')}
+                    className="bg-black/30 hover:bg-black/50 text-white px-4 py-2 rounded-lg backdrop-blur-md transition-all duration-300"
+                >
+                    ← Back to Table
+                </button>
+                <h1 className="text-3xl font-bold drop-shadow-lg text-yellow-400">
+                    ⚙️ Settings
+                </h1>
+                <div></div>
+            </div>
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-900 to-blue-900 p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Settings</h1>
-          <p className="text-white">Manage your account settings</p>
+            {/* Main Content */}
+            <div className="flex-1 flex flex-col items-center justify-center p-4 space-y-8">
+                {/* Message Display */}
+                {message.text && (
+                    <div className={`
+                        px-6 py-4 rounded-lg text-center font-semibold max-w-md
+                        ${message.type === 'error'
+                            ? 'bg-red-500/30 border border-red-500/50 text-red-200'
+                            : message.type === 'success'
+                            ? 'bg-green-500/30 border border-green-500/50 text-green-200'
+                            : 'bg-blue-500/30 border border-blue-500/50 text-blue-200'
+                        }
+                    `}>
+                        {message.text}
+                    </div>
+                )}
+
+                {!authenticated ? (
+                    /* Login Section */
+                    <Card className="w-full max-w-md">
+                        <CardHeader>
+                            <CardTitle>Login to Your Account</CardTitle>
+                            <CardDescription>
+                                Access your account to save progress and view statistics
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <form onSubmit={handleLogin}>
+                                <div className="flex flex-col gap-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="email">Email</Label>
+                                        <Input
+                                            id="email"
+                                            type="email"
+                                            value={loginForm.email}
+                                            onChange={(e) => handleInputChange('login', 'email', e.target.value)}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="password">Password</Label>
+                                        <Input
+                                            id="password"
+                                            type="password"
+                                            value={loginForm.password}
+                                            onChange={(e) => handleInputChange('login', 'password', e.target.value)}
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                                <CardFooter className="flex-col gap-2 px-0 mt-6">
+                                    <Button type="submit" className="w-full" disabled={loading}>
+                                        {loading ? 'Logging in...' : 'Login'}
+                                    </Button>
+                                    <Button
+                                        variant="link"
+                                        className="w-full"
+                                        onClick={() => router.push('/signup')}
+                                    >
+                                        Don't have an account? Sign up
+                                    </Button>
+                                </CardFooter>
+                            </form>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    /* Account Management Section */
+                    <div className="w-full max-w-2xl space-y-6">
+                        {/* Account Info */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Account Information</CardTitle>
+                                <CardDescription>
+                                    You are currently logged in
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-gray-600">Email:</span>
+                                        <span className="font-semibold">{userEmail}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-gray-600">Status:</span>
+                                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
+                                            Authenticated 🔐
+                                        </span>
+                                    </div>
+                                </div>
+                            </CardContent>
+                            <CardFooter>
+                                <Button
+                                    variant="outline"
+                                    onClick={handleLogout}
+                                    disabled={loading}
+                                    className="w-full"
+                                >
+                                    {loading ? 'Logging out...' : 'Logout'}
+                                </Button>
+                            </CardFooter>
+                        </Card>
+
+                        {/* Change Password */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Change Password</CardTitle>
+                                <CardDescription>
+                                    Update your account password
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <form onSubmit={handlePasswordChange}>
+                                    <div className="flex flex-col gap-4">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="oldPassword">Current Password</Label>
+                                            <Input
+                                                id="oldPassword"
+                                                type="password"
+                                                value={passwordForm.oldPassword}
+                                                onChange={(e) => handleInputChange('password', 'oldPassword', e.target.value)}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="newPassword">New Password</Label>
+                                            <Input
+                                                id="newPassword"
+                                                type="password"
+                                                value={passwordForm.password}
+                                                onChange={(e) => handleInputChange('password', 'password', e.target.value)}
+                                                required
+                                                minLength={8}
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                                            <Input
+                                                id="confirmPassword"
+                                                type="password"
+                                                value={passwordForm.passwordConfirm}
+                                                onChange={(e) => handleInputChange('password', 'passwordConfirm', e.target.value)}
+                                                required
+                                                minLength={8}
+                                            />
+                                        </div>
+                                    </div>
+                                    <CardFooter className="px-0 mt-6">
+                                        <Button type="submit" className="w-full" disabled={loading}>
+                                            {loading ? 'Changing Password...' : 'Change Password'}
+                                        </Button>
+                                    </CardFooter>
+                                </form>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
+            </div>
         </div>
+    );
+};
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* User Information */}
-          <div className="bg-blue-950 rounded-xl p-6 border border-white/20">
-            <div className="flex items-center mb-4">
-              <User className="text-yellow-400 mr-3" size={24} />
-              <h2 className="text-xl font-semibold text-white">Account Information</h2>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-white text-sm font-medium mb-1">Email</label>
-                <div className="bg-white/5 rounded-lg p-3 text-white">{userInfo.email}</div>
-              </div>
-              
-              <div>
-                <label className="block text-white text-sm font-medium mb-1">Member Since</label>
-                <div className="bg-white/5 rounded-lg p-3 text-white">{new Date(userInfo.joinDate).toLocaleDateString()}</div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-white text-sm font-medium mb-1">Games Played</label>
-                  <div className="bg-white/5 rounded-lg p-3 text-white font-semibold">{userInfo.gamesPlayed}</div>
-                </div>
-                <div>
-                  <label className="block text-white text-sm font-medium mb-1">Win Rate</label>
-                  <div className="bg-white/5 rounded-lg p-3 text-white font-semibold">{userInfo.winRate}%</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Change Password */}
-          <div className=" bg-blue-950 rounded-xl p-6 border border-white/20">
-            <div className="flex items-center mb-4">
-              <Lock className="text-yellow-400 mr-3" size={24} />
-              <h2 className="text-xl font-semibold text-white">Change Password</h2>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-white text-sm font-medium mb-1">Current Password</label>
-                <div className="relative">
-                  <input
-                    type={showPasswords.current ? 'text' : 'password'}
-                    value={passwordData.currentPassword}
-                    onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent pr-10"
-                    placeholder="Enter current password"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => toggleShowPassword('current')}
-                    className="absolute right-3 top-2.5 text-gray-400 hover:text-white"
-                  >
-                    {showPasswords.current ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-white text-sm font-medium mb-1">New Password</label>
-                <div className="relative">
-                  <input
-                    type={showPasswords.new ? 'text' : 'password'}
-                    value={passwordData.newPassword}
-                    onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent pr-10"
-                    placeholder="Enter new password"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => toggleShowPassword('new')}
-                    className="absolute right-3 top-2.5 text-gray-400 hover:text-white"
-                  >
-                    {showPasswords.new ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-white text-sm font-medium mb-1">Confirm New Password</label>
-                <div className="relative">
-                  <input
-                    type={showPasswords.confirm ? 'text' : 'password'}
-                    value={passwordData.confirmPassword}
-                    onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent pr-10"
-                    placeholder="Confirm new password"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => toggleShowPassword('confirm')}
-                    className="absolute right-3 top-2.5 text-gray-400 hover:text-white"
-                  >
-                    {showPasswords.confirm ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-              </div>
-              
-              {passwordChangeStatus && (
-                <div className={`flex items-center space-x-2 p-3 rounded-lg ${
-                  passwordChangeStatus.type === 'success' 
-                    ? 'bg-green-500/20 text-green-400' 
-                    : 'bg-red-500/20 text-red-400'
-                }`}>
-                  {passwordChangeStatus.type === 'success' ? (
-                    <Check size={18} />
-                  ) : (
-                    <X size={18} />
-                  )}
-                  <span>{passwordChangeStatus.message}</span>
-                </div>
-              )}
-              
-              <button
-                onClick={handlePasswordChange}
-                className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
-              >
-                Change Password
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Save Button */}
-        <div className="mt-8 text-center">
-          <button className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors duration-200 shadow-lg">
-            Save Settings
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+export default Settings;

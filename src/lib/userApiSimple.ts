@@ -341,18 +341,14 @@ export async function getUserRounds(userId: string, page: number = 1, perPage: n
       };
     }
 
-    // First test if collection exists
-    const testResult = await testRoundsCollection();
-    if (!testResult.success) {
-      return {
-        success: false,
-        error: `Rounds collection error: ${testResult.error}`
-      };
-    }
+    // Add a small delay to prevent auto-cancellation
+    await new Promise(resolve => setTimeout(resolve, 100));
 
-    // Fetch rounds - PocketBase rules will automatically filter by authenticated user
+    // Fetch rounds with unique request key to prevent auto-cancellation
+    const uniqueKey = `rounds_${userId}_${Date.now()}_${Math.random()}`;
     const records = await pb.collection('rounds').getList(page, perPage, {
-      sort: '-startedAt'
+      sort: '-startedAt',
+      requestKey: uniqueKey
     });
 
     console.log('Rounds fetched successfully:', records);

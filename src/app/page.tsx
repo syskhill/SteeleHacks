@@ -75,6 +75,17 @@ const Home = () => {
               >
                 Sign Up
               </button>
+              <div className="flex items-center gap-2 w-full my-2">
+                <div className="flex-1 h-px bg-gray-400"></div>
+                <span className="text-sm text-gray-300">or</span>
+                <div className="flex-1 h-px bg-gray-400"></div>
+              </div>
+              <button
+                className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg text-xl w-full transition-colors"
+                onClick={() => router.push('/table')}
+              >
+                Continue as Guest
+              </button>
             </>
           )}
         </div>

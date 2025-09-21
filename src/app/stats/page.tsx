@@ -33,21 +33,21 @@ const BarChart: React.FC<{ data: { label: string; value: number; color: string }
 
         return (
           <div key={index} className="flex items-center">
-            <div className="w-16 text-sm text-right mr-3 text-gray-300">{item.label}</div>
+            <div className="w-20 text-sm text-right mr-3 text-gray-300 font-semibold">{item.label}</div>
             <div className="flex-1 bg-gray-700 rounded h-8 relative overflow-hidden">
               <div
                 className={`h-8 rounded flex items-center justify-between px-2 transition-all duration-500 ${item.color}`}
                 style={{ width: `${minWidth}%` }}
               >
-                <span className="text-xs font-bold text-white">{item.value}</span>
+                <span className="text-xs font-bold text-white drop-shadow-md">{item.value}</span>
                 {percentage > 20 && (
-                  <span className="text-xs text-white opacity-75">
+                  <span className="text-xs text-white font-semibold drop-shadow-md">
                     {percentage.toFixed(1)}%
                   </span>
                 )}
               </div>
               {percentage <= 20 && item.value > 0 && (
-                <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-gray-300">
+                <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-gray-300 font-semibold">
                   {percentage.toFixed(1)}%
                 </span>
               )}
@@ -135,11 +135,7 @@ const HandAnalysisTable: React.FC<{ analyses: HandAnalysisResult[] }> = ({ analy
                   <span className={`px-2 py-1 text-xs rounded ${
                     analysis.wasOptimal
                       ? 'bg-green-600 text-white'
-                      : analysis.deviation === 'MAJOR'
-                      ? 'bg-red-600 text-white'
-                      : analysis.deviation === 'MODERATE'
-                      ? 'bg-orange-600 text-white'
-                      : 'bg-yellow-600 text-black'
+                      : 'bg-red-600 text-white'
                   }`}>
                     {analysis.actualAction}
                   </span>
@@ -351,12 +347,10 @@ const StatsPage: React.FC = () => {
 
           {/* Strategy Analysis Chart */}
           <div className="bg-blue-950 rounded-lg p-6">
-            <h3 className="text-xl font-bold mb-4 text-yellow-400">Strategy Deviations</h3>
+            <h3 className="text-xl font-bold mb-4 text-yellow-400">Strategy Analysis</h3>
             <BarChart data={[
               { label: 'Optimal', value: stats.optimalDecisions, color: 'bg-green-500' },
-              { label: 'Minor', value: stats.minorDeviations, color: 'bg-yellow-500' },
-              { label: 'Moderate', value: stats.moderateDeviations, color: 'bg-orange-500' },
-              { label: 'Major', value: stats.majorDeviations, color: 'bg-red-500' }
+              { label: 'Suboptimal', value: stats.suboptimalDecisions, color: 'bg-red-500' }
             ]} />
           </div>
         </div>

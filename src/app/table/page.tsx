@@ -66,6 +66,7 @@ const BlackjackTable: React.FC = () => {
   const [userId, setUserId] = useState<string>('');
   const [currentRoundId, setCurrentRoundId] = useState<string>('');
   const [roundActions, setRoundActions] = useState<any[]>([]);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   
   const playerHandRef = useRef<HTMLDivElement>(null);
   const dealerHandRef = useRef<HTMLDivElement>(null);
@@ -678,17 +679,10 @@ const BlackjackTable: React.FC = () => {
       setGame(prev => ({ ...prev, gameOver: true }));
       setGameMode('gameOver');
 
-      // Return to betting mode after delay
+      // Automatically return to betting mode after showing results
       setTimeout(() => {
-        const playAgain = confirm('Play another hand?');
-        if (playAgain) {
-          resetForNewGame();
-        } else {
-          // Just return to betting mode
-          setGameMode('betting');
-          resetHands();
-        }
-      }, 2500);
+        resetForNewGame();
+      }, 3000);
     } catch (error) {
       console.error('Error in endGame:', error);
       // Fallback to ensure game doesn't get stuck
@@ -987,7 +981,7 @@ const BlackjackTable: React.FC = () => {
     <>
       <div className={`
         min-h-screen text-white flex flex-col transition-all duration-500
-        ${gameMode === 'betting' ? "bg-[url('/blackjack.jpg')]" : 
+        ${gameMode === 'betting' ? "bg-[url('/blackjack.jpg')] bg-cover bg-center bg-no-repeat bg-fixed" :
           gameMode === 'playing' || gameMode === 'gameOver' ? 'bg-gradient-to-br from-green-900 via-emerald-900 to-teal-900' : ''}
       `}>
         {/* Background Pattern for Game Mode */}
@@ -1002,12 +996,28 @@ const BlackjackTable: React.FC = () => {
 
         {/* Header */}
         <div className="flex justify-between items-center p-4 border-b-2 border-white/20 relative z-10">
-          <h1 className={`
-            text-3xl font-bold drop-shadow-lg transition-colors duration-500
-            ${gameMode === 'betting' ? 'text-yellow-400' : 'text-lime-400'}
-          `}>
-            {(gameMode === 'betting' ? '🎰 Backyard Blackjack' : '🎰 Backyard Blackjack')}
-          </h1>
+          <div className="flex items-center gap-4">
+            {/* Hamburger Menu */}
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="bg-black/30 hover:bg-black/50 text-white p-2 rounded-lg backdrop-blur-md transition-all duration-300 relative z-50"
+              aria-label="Menu"
+            >
+              <div className="w-6 h-6 flex flex-col justify-center items-center">
+                <div className={`w-5 h-0.5 bg-white transition-all duration-300 ${isMenuOpen ? 'rotate-45 translate-y-1.5' : 'mb-1'}`}></div>
+                <div className={`w-5 h-0.5 bg-white transition-all duration-300 ${isMenuOpen ? 'opacity-0' : 'mb-1'}`}></div>
+                <div className={`w-5 h-0.5 bg-white transition-all duration-300 ${isMenuOpen ? '-rotate-45 -translate-y-1.5' : ''}`}></div>
+              </div>
+            </button>
+
+            <h1 className={`
+              text-3xl font-bold drop-shadow-lg transition-colors duration-500
+              ${gameMode === 'betting' ? 'text-yellow-400' : 'text-lime-400'}
+            `}>
+              {(gameMode === 'betting' ? '🎰 Backyard Blackjack' : '🎰 Backyard Blackjack')}
+            </h1>
+          </div>
+
           <div className="bg-black/30 px-4 py-2 rounded-full text-sm flex backdrop-blur-md items-center gap-4">
             <span>Pitt Panthers: <span className="font-semibold">{gameState.player || 'Anonymous'}</span></span>
             <span className={`px-3 py-1 rounded-full text-xs backdrop-blur-md font-bold ${isAuthenticated ? 'bg-green-400/20 text-green-300' : 'bg-yellow-400/20'}`}>
@@ -1016,6 +1026,42 @@ const BlackjackTable: React.FC = () => {
             </span>
           </div>
         </div>
+
+        {/* Hamburger Menu Dropdown */}
+        {isMenuOpen && (
+          <div className="absolute top-20 left-4 bg-black/90 backdrop-blur-md rounded-lg shadow-2xl border border-white/20 z-40 min-w-48">
+            <div className="p-2">
+              <button
+                onClick={() => {
+                  router.push('/stats');
+                  setIsMenuOpen(false);
+                }}
+                className="w-full text-left px-4 py-3 text-white hover:bg-white/20 rounded-lg transition-all duration-300 flex items-center gap-3"
+              >
+                <span className="text-lg">📊</span>
+                <span>Statistics</span>
+              </button>
+              <button
+                onClick={() => {
+                  router.push('/settings');
+                  setIsMenuOpen(false);
+                }}
+                className="w-full text-left px-4 py-3 text-white hover:bg-white/20 rounded-lg transition-all duration-300 flex items-center gap-3"
+              >
+                <span className="text-lg">⚙️</span>
+                <span>Settings</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Overlay to close menu */}
+        {isMenuOpen && (
+          <div
+            className="fixed inset-0 z-30"
+            onClick={() => setIsMenuOpen(false)}
+          ></div>
+        )}
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col items-center justify-center p-4 space-y-8 relative z-10">
@@ -1166,17 +1212,6 @@ const BlackjackTable: React.FC = () => {
           {/* PLAYING MODE */}
           {(gameMode === 'playing' || gameMode === 'gameOver') && (
             <div className="w-full max-w-6xl space-y-8 ">
-              {/* Deck */}
-              <div 
-                className="absolute left-8 top-1/2 -translate-y-1/2 w-16 h-24 bg-gradient-to-b from-gray-800 to-gray-900 rounded-lg shadow-2xl border-2 border-gray-600 cursor-pointer hover:scale-105 transition-transform z-20"
-                onClick={resetProgress}
-                title="Click to reset game"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-black rounded-lg opacity-20 animate-pulse"></div>
-                <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
-                  {game.deck.length}
-                </div>
-              </div>
 
               {/* Dealer Section */}
               <div className="w-full">
@@ -1394,13 +1429,23 @@ const BlackjackTable: React.FC = () => {
         <div className="border-t border-white/10 p-4 text-center">
           <button
             className={`
-              bg-white/20 text-white border border-white/30 px-6 py-2 rounded-full 
-              hover:bg-white/30 transition-all duration-300 font-medium
-              ${gameMode === 'betting' ? 'px-6' : 'px-8'}
+              bg-white/20 text-white border border-white/30 px-6 py-2 rounded-full
+              transition-all duration-300 font-medium
+              ${gameMode === 'betting' ? 'px-6 hover:bg-white/30' :
+                gameMode === 'playing' ? 'px-8 opacity-50 cursor-not-allowed' : 'px-8 hover:bg-white/30'}
             `}
-            onClick={gameMode === 'betting' ? resetProgress : resetForNewGame}
+            onClick={
+              gameMode === 'betting' ? resetProgress :
+              gameMode === 'playing' ? undefined : resetForNewGame
+            }
+            disabled={gameMode === 'playing'}
+            title={
+              gameMode === 'betting' ? 'Reset all progress' :
+              gameMode === 'playing' ? 'Cannot reset during active game' : 'Start a new game'
+            }
           >
-            {gameMode === 'betting' ? 'Reset Progress' : 'New Game'}
+            {gameMode === 'betting' ? 'Reset Progress' :
+             gameMode === 'playing' ? 'Game in Progress' : 'New Game'}
           </button>
         </div>
       </div>

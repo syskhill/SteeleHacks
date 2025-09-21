@@ -38,7 +38,6 @@ export interface HandAnalysisResult {
   optimalAction: string;
   actualAction: string;
   wasOptimal: boolean;
-  deviation: 'MINOR' | 'MODERATE' | 'MAJOR';
   explanation: string;
   confidence: number;
 }
@@ -58,10 +57,8 @@ export interface GameStatistics {
   // Strategy analysis
   totalDecisions: number;
   optimalDecisions: number;
+  suboptimalDecisions: number;
   strategyAccuracy: number;
-  minorDeviations: number;
-  moderateDeviations: number;
-  majorDeviations: number;
 
   // Hand breakdowns
   handAnalyses: HandAnalysisResult[];
@@ -92,9 +89,7 @@ export async function getUserStatistics(userId: string): Promise<{ success: bool
 
     let totalDecisions = 0;
     let optimalDecisions = 0;
-    let minorDeviations = 0;
-    let moderateDeviations = 0;
-    let majorDeviations = 0;
+    let suboptimalDecisions = 0;
 
     const handAnalyses: HandAnalysisResult[] = [];
     const recentPerformance: { date: string; result: 'win' | 'lose' | 'push'; profit: number }[] = [];
@@ -178,15 +173,13 @@ export async function getUserStatistics(userId: string): Promise<{ success: bool
               optimalDecisions++;
               roundOptimalDecisions++;
             } else {
-              // Only count deviations if this was actually a suboptimal play
+              // Only count suboptimal decisions if this was actually a suboptimal play
               // Skip counting strategy deviations for forced actions (like stand after double down)
               const isFirstAction = round.actions.indexOf(action) === 0;
               const isStandAfterDouble = action.action === 'STAND' && round.actions.length > 1 && round.actions[0].action === 'DOUBLE';
 
               if (isFirstAction || !isStandAfterDouble) {
-                if (analysis.deviation === 'MINOR') minorDeviations++;
-                else if (analysis.deviation === 'MODERATE') moderateDeviations++;
-                else majorDeviations++;
+                suboptimalDecisions++;
               }
             }
           }
@@ -205,7 +198,6 @@ export async function getUserStatistics(userId: string): Promise<{ success: bool
             optimalAction: keyOptimalAction || 'N/A',
             actualAction: keyAction || 'N/A',
             wasOptimal: firstAnalysis.wasOptimal,
-            deviation: worstDeviation as 'MINOR' | 'MODERATE' | 'MAJOR',
             explanation: keyExplanation || 'Round analysis complete',
             confidence: firstAnalysis.optimal.confidence
           });
@@ -233,9 +225,7 @@ export async function getUserStatistics(userId: string): Promise<{ success: bool
 
           if (analysis.wasOptimal) optimalDecisions++;
           else {
-            if (analysis.deviation === 'MINOR') minorDeviations++;
-            else if (analysis.deviation === 'MODERATE') moderateDeviations++;
-            else majorDeviations++;
+            suboptimalDecisions++;
           }
 
 
@@ -251,7 +241,6 @@ export async function getUserStatistics(userId: string): Promise<{ success: bool
             optimalAction: analysis.optimal.optimalAction,
             actualAction: analysis.actualAction,
             wasOptimal: analysis.wasOptimal,
-            deviation: analysis.deviation,
             explanation: analysis.explanation,
             confidence: analysis.optimal.confidence
           });
@@ -281,10 +270,8 @@ export async function getUserStatistics(userId: string): Promise<{ success: bool
       averageBet,
       totalDecisions,
       optimalDecisions,
+      suboptimalDecisions,
       strategyAccuracy,
-      minorDeviations,
-      moderateDeviations,
-      majorDeviations,
       handAnalyses,
       recentPerformance: recentPerformance.slice(0, 20) // Last 20 games
     };
