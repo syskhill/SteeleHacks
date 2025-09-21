@@ -4,6 +4,8 @@ import Pocketbase from 'pocketbase';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAuthenticated } from '../lib/auth';
+import Image from 'next/image';
+
 
 const Home = () => {
   const router = useRouter();
@@ -31,14 +33,20 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-[url('/wood.jpg')] bg-cover bg-repeat text-white flex flex-col items-center">
-      <header className="text-center pt-20 p-10">
+      <header className="text-center p-10">
         <h1 className="text-4xl font-bold mb-4">Backyard Blackjack</h1>
         {isLoggedIn && username && (
           <p className="text-xl text-yellow-400 mb-4">Playing as: {username}</p>
         )}
         <p className="text-lg">Play the classic game of blackjack with your friends!</p>
       </header>
-      <main className="flex flex-col items-center space-y-6 mt-80">
+      <Image
+        src="/cover.png" // Use the .png extension here
+        alt="Blackjack Cover"
+        width={700}
+        height={300}
+      />
+      <main className="flex flex-col items-center space-y-6 mt-10">
         <button
           className="bg-yellow-500 text-black px-6 py-2 rounded-lg text-xl w-64"
           onClick={() => router.push('/table')}
@@ -56,13 +64,13 @@ const Home = () => {
           ) : (
             <>
               <button
-                className="bg-green-500 text-white px-6 py-2 rounded-lg text-xl w-full"
+                className="bg-black text-white px-6 py-2 rounded-lg text-xl w-full"
                 onClick={() => router.push('/login')}
               >
                 Login
               </button>
               <button
-                className="bg-blue-500 text-white px-6 py-2 rounded-lg text-xl w-full"
+                className="bg-blue-950 text-white px-6 py-2 rounded-lg text-xl w-full"
                 onClick={() => router.push('/signup')}
               >
                 Sign Up
