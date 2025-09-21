@@ -503,6 +503,15 @@ const BlackjackTable: React.FC = () => {
     }, 3000);
   };
 
+  // Auto-scale background for betting mode
+  const bettingBackgroundStyle: React.CSSProperties | undefined = gameMode === 'betting' ? {
+    backgroundImage: "url('/blackjack.jpg')",
+    backgroundSize: 'cover',          // scale to cover the viewport
+    backgroundPosition: 'center',     // center the image
+    backgroundRepeat: 'no-repeat',
+    backgroundAttachment: 'fixed'     // optional: keep background fixed while scrolling
+  } : undefined;
+  
   // Check for blackjack on initial deal
   useEffect(() => {
     if (game.playerHand.length === 2 && gameMode === 'playing') {
