@@ -105,11 +105,6 @@ export async function getUserStatistics(userId: string): Promise<{ success: bool
         continue; // Skip incomplete rounds
       }
 
-      // Debug logging to check card structure
-      console.log('Round ID:', round.id);
-      console.log('Player hand from DB:', round.outcomes.playerHand);
-      console.log('Dealer hand from DB:', round.outcomes.dealerHand);
-
       // Ensure cards are properly structured
       const playerHand = Array.isArray(round.outcomes.playerHand) ? round.outcomes.playerHand : [];
       const dealerHand = Array.isArray(round.outcomes.dealerHand) ? round.outcomes.dealerHand : [];
@@ -119,9 +114,6 @@ export async function getUserStatistics(userId: string): Promise<{ success: bool
       const validDealerHand = dealerHand.every((card: any) => card && typeof card === 'object' && card.value && card.suit);
 
       if (!validPlayerHand || !validDealerHand) {
-        console.warn('Invalid card data found in round:', round.id);
-        console.warn('Player hand valid:', validPlayerHand, playerHand);
-        console.warn('Dealer hand valid:', validDealerHand, dealerHand);
         continue; // Skip this round if cards are malformed
       }
 
@@ -203,11 +195,6 @@ export async function getUserStatistics(userId: string): Promise<{ success: bool
             keyExplanation = analysis.explanation;
           }
 
-          // Debug log the hands being added to analysis
-          console.log('Adding consolidated hand analysis for round:', round.id);
-          console.log('Final player hand:', outcomes.playerHand);
-          console.log('Dealer up card:', round.actions[0].dealerUpCard);
-          console.log('Dealer final hand for analysis:', outcomes.dealerHand);
 
           // Add one consolidated analysis per round showing final hands
           handAnalyses.push({
@@ -255,11 +242,6 @@ export async function getUserStatistics(userId: string): Promise<{ success: bool
             else majorDeviations++;
           }
 
-          // Debug log the fallback case
-          console.log('Using fallback analysis for round:', round.id);
-          console.log('Final player hand (fallback):', outcomes.playerHand);
-          console.log('Dealer up card (first card):', outcomes.dealerHand[0]);
-          console.log('Dealer final hand (fallback):', outcomes.dealerHand);
 
           handAnalyses.push({
             roundId: round.id,

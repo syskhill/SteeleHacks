@@ -61,13 +61,8 @@ const BarChart: React.FC<{ data: { label: string; value: number; color: string }
 
 // Card display component
 const CardDisplay: React.FC<{ card: Card }> = ({ card }) => {
-  // Debug log to check card structure
-  console.log('CardDisplay received card:', card);
-  console.log('Card value:', card.value, 'Card suit:', card.suit);
-
   // Handle malformed card data
   if (!card || typeof card !== 'object' || !card.value || !card.suit) {
-    console.warn('Malformed card data:', card);
     return (
       <div className="inline-block w-8 h-12 bg-gray-300 text-gray-600 text-xs font-bold rounded border border-gray-400 flex items-center justify-center flex-shrink-0">
         ?
