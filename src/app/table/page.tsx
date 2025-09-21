@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import {login, logout, isAuthenticated, pb} from '../../lib/auth';
+import {login, logout, isAuthenticated, pb, getGuestUser, isGuestUser} from '../../lib/auth';
 import { getUserBalance, updateUserBalance, initializeUserBalance, createRound, updateRoundOutcomes, addActionToRound } from '../../lib/userApiSimple';
 
 // Type definitions
@@ -75,15 +75,16 @@ const BlackjackTable: React.FC = () => {
   // Load state from localStorage on mount and check authentication
   useEffect(() => {
     const initializeGame = async () => {
-      // Check authentication
+      // Check authentication (both PocketBase and guest)
       const authValid = pb.authStore.isValid;
       const currentUserId = pb.authStore.record?.id;
+      const guestUser = getGuestUser();
 
-      setIsAuthenticated(authValid);
-      setUserId(currentUserId || '');
+      setIsAuthenticated(authValid || !!guestUser);
+      setUserId(currentUserId || guestUser?.id || '');
 
       if (authValid && currentUserId) {
-        // User is authenticated, load balance from PocketBase
+        // User is authenticated with PocketBase, load balance from PocketBase
         try {
           const balanceResult = await initializeUserBalance(currentUserId);
           if (balanceResult.success && balanceResult.balance !== undefined) {
@@ -96,6 +97,13 @@ const BlackjackTable: React.FC = () => {
         } catch (error) {
           console.error('Failed to load user balance:', error);
         }
+      } else if (guestUser) {
+        // Guest user, use guest data
+        setGameState(prev => ({
+          ...prev,
+          bankroll: guestUser.chips,
+          player: 'Anonymous'
+        }));
       } else {
         // Not authenticated, load from localStorage
         const storedState = localStorage.getItem('blackjackState');
@@ -122,12 +130,19 @@ const BlackjackTable: React.FC = () => {
     const syncBalance = async () => {
       localStorage.setItem('blackjackState', JSON.stringify(gameState));
 
-      // If user is authenticated, sync balance with PocketBase
-      if (isAuthenticated && userId && gameState.bankroll !== undefined) {
+      // If user is authenticated with PocketBase, sync balance with PocketBase
+      if (pb.authStore.isValid && userId && gameState.bankroll !== undefined) {
         try {
           await updateUserBalance(userId, gameState.bankroll);
         } catch (error) {
           console.error('Failed to sync balance with PocketBase:', error);
+        }
+      } else if (isGuestUser() && gameState.bankroll !== undefined) {
+        // Update guest user data in localStorage
+        const guestUser = getGuestUser();
+        if (guestUser) {
+          const updatedGuestUser = { ...guestUser, chips: gameState.bankroll };
+          localStorage.setItem('guestUser', JSON.stringify(updatedGuestUser));
         }
       }
     };
@@ -1019,10 +1034,11 @@ const BlackjackTable: React.FC = () => {
           </div>
 
           <div className="bg-black/30 px-4 py-2 rounded-full text-sm flex backdrop-blur-md items-center gap-4">
-            <span>Pitt Panthers: <span className="font-semibold">{gameState.player || 'Anonymous'}</span></span>
-            <span className={`px-3 py-1 rounded-full text-xs backdrop-blur-md font-bold ${isAuthenticated ? 'bg-green-400/20 text-green-300' : 'bg-yellow-400/20'}`}>
+            <span>Pitt Panthers: <span className="font-semibold">{isGuestUser() ? 'Anonymous' : (gameState.player || 'Anonymous')}</span></span>
+            <span className={`px-3 py-1 rounded-full text-xs backdrop-blur-md font-bold ${pb.authStore.isValid ? 'bg-green-400/20 text-green-300' : isGuestUser() ? 'bg-orange-400/20 text-orange-300' : 'bg-yellow-400/20'}`}>
               Balance: ${gameState.bankroll.toLocaleString()}
-              {isAuthenticated && <span className="ml-1">🔐</span>}
+              {pb.authStore.isValid && <span className="ml-1">🔐</span>}
+              {isGuestUser() && <span className="ml-1">👤</span>}
             </span>
           </div>
         </div>
