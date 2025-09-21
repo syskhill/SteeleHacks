@@ -6,7 +6,7 @@ import Pocketbase from 'pocketbase';
 import { getAllUsers } from '@/lib/userApi';
 import { getUserRounds, testRoundsCollection, testCreateRound } from '@/lib/userApiSimple';
 
-const pocketbase = new Pocketbase('http://localhost:8090');
+const pocketbase = new Pocketbase('https://1e3cb110514d.ngrok-free.app/');
 
 async function test() {
     const userID = pocketbase.authStore.record?.id;
@@ -43,11 +43,11 @@ const Test = () => {
         try {
             const result = await getAllUsers();
             if (result.success) {
-                setUsers(result.users);
+                setUsers(users);
                 setSuccess('Users fetched successfully!');
                 console.log('Users fetched:', result.users);
             } else {
-                setError(result.error);
+                setError(error);
                 console.error('Error fetching users:', result.error);
             }
         } catch (err) {
@@ -109,11 +109,11 @@ const Test = () => {
 
             const result = await getUserRounds(userId);
             if (result.success) {
-                setRounds(result.rounds || []);
+                setRounds(rounds || []);
                 setSuccess(`Found ${result.rounds?.length || 0} rounds!`);
                 console.log('Rounds fetched:', result.rounds);
             } else {
-                setError(result.error);
+                setError(error);
                 console.error('Error fetching rounds:', result.error);
             }
         } catch (err) {

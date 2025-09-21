@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { login, logout, isAuthenticated } from '../../lib/auth';
+import { login, logout, isAuthenticated, googleLogin } from '../../lib/auth';
 
 const Login = () => {
     const router = useRouter();
@@ -110,7 +110,7 @@ const Login = () => {
                                 <Button type="submit" className="w-full">
                                     Login
                                 </Button>
-                                <Button variant="outline" className="w-full">
+                                <Button variant="outline" className="w-full" onClick={() => googleLogin()}>
                                     Login with Google
                                 </Button>
                             </CardFooter>
