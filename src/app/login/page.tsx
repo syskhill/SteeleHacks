@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     Card,
-    CardAction,
     CardContent,
     CardDescription,
     CardFooter,
@@ -14,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { login, logout, isAuthenticated, googleLogin } from '../../lib/auth';
+import { login, logout, isAuthenticated, guestLogin } from '../../lib/auth';
 
 const Login = () => {
     const router = useRouter();
@@ -23,7 +22,6 @@ const Login = () => {
     const [error, setError] = useState('');
     const [isLoggedIn, setIsLoggedIn] = useState(isAuthenticated());
     const [loading, setLoading] = useState(false);
-    const [googleLoading, setGoogleLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -53,31 +51,27 @@ const Login = () => {
         setIsLoggedIn(false);
     };
 
-    const handleGuestMode = () => {
-        // Continue as guest - just redirect to table without authentication
-        router.push('/table');
-    };
-
-    const handleGoogleLogin = async () => {
+    const handleGuestMode = async () => {
         setError('');
-        setGoogleLoading(true);
+        setLoading(true);
 
         try {
-            const result = await googleLogin();
+            const result = await guestLogin();
             if (result.success) {
                 setIsLoggedIn(true);
-                console.log('Google login successful', result.user);
-                router.push('/table'); // Redirect to table page after successful login
+                console.log('Guest login successful', result.user);
+                router.push('/table');
             } else {
-                setError(result.error || 'Google login failed');
+                setError(result.error || 'Guest login failed');
             }
         } catch (error) {
-            console.error('Google login error:', error);
-            setError('Google login failed');
+            console.error('Guest login error:', error);
+            setError('Guest login failed');
         } finally {
-            setGoogleLoading(false);
+            setLoading(false);
         }
     };
+
 
     return (
         <div className="min-h-screen bg-[url('/wood.jpg')] text-white flex flex-col justify-center items-center">
@@ -139,16 +133,8 @@ const Login = () => {
                                 )}
                             </div>
                             <CardFooter className="flex-col gap-2 px-0 mt-6">
-                                <Button type="submit" className="w-full" disabled={loading || googleLoading}>
+                                <Button type="submit" className="w-full" disabled={loading}>
                                     {loading ? 'Logging in...' : 'Login'}
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    className="w-full"
-                                    onClick={handleGoogleLogin}
-                                    disabled={loading || googleLoading}
-                                >
-                                    {googleLoading ? 'Connecting to Google...' : 'Login with Google'}
                                 </Button>
                                 <div className="flex items-center gap-2 w-full my-2">
                                     <div className="flex-1 h-px bg-gray-300"></div>
@@ -160,7 +146,7 @@ const Login = () => {
                                     className="w-full"
                                     onClick={handleGuestMode}
                                     type="button"
-                                    disabled={loading || googleLoading}
+                                    disabled={loading}
                                 >
                                     Continue as Guest
                                 </Button>
@@ -170,7 +156,7 @@ const Login = () => {
                                     onClick={() => router.push('/signup')}
                                     type="button"
                                 >
-                                    Don't have an account? Sign up
+                                    Don&apos;t have an account? Sign up
                                 </Button>
                             </CardFooter>
                         </form>

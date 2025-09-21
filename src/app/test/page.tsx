@@ -6,7 +6,7 @@ import Pocketbase from 'pocketbase';
 import { getAllUsers } from '@/lib/userApi';
 import { getUserRounds, testRoundsCollection, testCreateRound } from '@/lib/userApiSimple';
 
-const pocketbase = new Pocketbase('https://1e3cb110514d.ngrok-free.app/');
+const pocketbase = new Pocketbase('https://e0871e346ffb.ngrok-free.app');
 
 async function test() {
     const userID = pocketbase.authStore.record?.id;

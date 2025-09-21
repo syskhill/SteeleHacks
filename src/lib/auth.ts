@@ -1,7 +1,7 @@
 import PocketBase from 'pocketbase';
 
 // Initialize PocketBase
-export const pb = new PocketBase('https://1e3cb110514d.ngrok-free.app'); // Replace with your PocketBase URL
+export const pb = new PocketBase('https://8cadc2ad641b.ngrok-free.app'); // Replace with your PocketBase URL
 
 export async function login(email: string, password: string) {
   try {
@@ -22,47 +22,58 @@ export async function login(email: string, password: string) {
   }
 }
 
-export async function googleLogin() {
-  try {
-    // PocketBase OAuth2 with Google
-    const authData = await pb.collection("users").authWithOAuth2({
-      provider: "google",
-      createData: {
-        chips: 1000, // Default starting chips for new Google users
-      }
-    });
 
-    console.log("Google OAuth successful");
-    console.log("Is valid?", pb.authStore.isValid);
-    console.log("User:", pb.authStore.record);
+
+export async function guestLogin() {
+  try {
+    // Clear any existing authentication
+    pb.authStore.clear();
+
+    // Create a temporary anonymous user
+    const guestUser = {
+      id: 'guest_' + Date.now(),
+      email: 'guest@anonymous.com',
+      chips: 1000,
+      isGuest: true
+    };
+
+    // Store guest user in localStorage for persistence
+    localStorage.setItem('guestUser', JSON.stringify(guestUser));
 
     return {
       success: true,
-      user: authData?.record,
+      user: guestUser
     };
-  } catch (error: any) {
-    console.error("Google login error:", error);
-
-    // More specific error handling
-    let errorMessage = "Google login failed";
-    if (error.message) {
-      errorMessage = error.message;
-    } else if (error.data?.message) {
-      errorMessage = error.data.message;
-    }
-
+  } catch (error) {
     return {
       success: false,
-      error: errorMessage,
+      error: 'Guest login failed'
     };
   }
 }
 
+export function getGuestUser() {
+  if (typeof window !== 'undefined') {
+    const guestData = localStorage.getItem('guestUser');
+    return guestData ? JSON.parse(guestData) : null;
+  }
+  return null;
+}
+
+export function isGuestUser() {
+  const guestUser = getGuestUser();
+  return !!guestUser;
+}
 
 export async function logout() {
   pb.authStore.clear();
+  // Also clear guest user data
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('guestUser');
+  }
 }
 
 export function isAuthenticated() {
-  return pb.authStore.isValid;
+  return pb.authStore.isValid || isGuestUser();
 }
+

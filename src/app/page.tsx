@@ -11,7 +11,7 @@ const Home = () => {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
-  const pocketbase = new Pocketbase('https://1e3cb110514d.ngrok-free.app/');
+  const pocketbase = new Pocketbase('https://8cadc2ad641b.ngrok-free.app');
 
   useEffect(() => {
     const checkAuth = async () => {
