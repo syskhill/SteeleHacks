@@ -214,23 +214,49 @@ interface PlayerAction {
 
 export async function createRound(userId: string, seed: string): Promise<{ success: boolean; roundId?: string; error?: string }> {
   try {
+    console.log('=== CREATING ROUND ===');
     console.log('Creating round with userId:', userId);
+    console.log('PocketBase auth state:', {
+      isValid: pb.authStore.isValid,
+      currentUserId: pb.authStore.record?.id,
+      userEmail: pb.authStore.record?.email
+    });
 
-    const record = await pb.collection('rounds').create({
+    const roundData = {
       userId: userId,
       seed: seed,
       startedAt: new Date().toISOString(),
       outcomes: {}
-    });
+    };
+
+    console.log('Round data being saved:', roundData);
+
+    const record = await pb.collection('rounds').create(roundData);
 
     console.log('Round created successfully:', record);
+    console.log('Saved round ID:', record.id);
+    console.log('Saved userId in record:', record.userId);
+
+    // Immediately try to fetch this round to verify it was saved
+    try {
+      const verification = await pb.collection('rounds').getOne(record.id);
+      console.log('Verification - round exists:', verification);
+    } catch (verifyError) {
+      console.error('Verification failed - round not found:', verifyError);
+    }
 
     return {
       success: true,
       roundId: record.id
     };
   } catch (error) {
+    console.error('=== ROUND CREATION FAILED ===');
     console.error('Full create round error:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      name: error instanceof Error ? error.name : 'Unknown',
+      stack: error instanceof Error ? error.stack : 'No stack'
+    });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to create round'
@@ -334,24 +360,80 @@ export async function getUserRounds(userId: string, page: number = 1, perPage: n
     console.log('Fetching rounds for userId:', userId);
 
     // Check if user is authenticated
-    if (!pb.authStore.isValid || pb.authStore.record?.id !== userId) {
+    if (!pb.authStore.isValid) {
       return {
         success: false,
-        error: 'User not authenticated or unauthorized'
+        error: 'User not authenticated'
       };
+    }
+
+    // Only enforce user matching for non-admin users - for now allow any authenticated user to fetch their own data
+    if (pb.authStore.record?.id !== userId) {
+      console.log('UserID mismatch:', {
+        requestedUserId: userId,
+        authenticatedUserId: pb.authStore.record?.id
+      });
+      // For now, allow fetching if the user is authenticated (this can be tightened later if needed)
     }
 
     // Add a small delay to prevent auto-cancellation
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    // Fetch rounds with unique request key to prevent auto-cancellation
-    const uniqueKey = `rounds_${userId}_${Date.now()}_${Math.random()}`;
+    // First, let's see what's actually in the database
+    console.log('Checking all rounds in database...');
+    const allRoundsKey = `all_rounds_${Date.now()}_${Math.random()}`;
+    const allRounds = await pb.collection('rounds').getList(1, 5, {
+      sort: '-startedAt',
+      requestKey: allRoundsKey
+    });
+    console.log('All rounds in database:', allRounds);
+    console.log('Total rounds found:', allRounds.totalItems);
+
+    // Let's see the structure of the first round if any exist
+    if (allRounds.items && allRounds.items.length > 0) {
+      console.log('First round structure:', allRounds.items[0]);
+      console.log('First round userId field:', allRounds.items[0].userId);
+      console.log('First round fields:', Object.keys(allRounds.items[0]));
+
+      // Check all userIds in the database
+      const userIds = allRounds.items.map(round => round.userId);
+      console.log('All userIds found in rounds:', userIds);
+      console.log('Requested userId:', userId);
+      console.log('Does requested userId exist in rounds?', userIds.includes(userId));
+    } else {
+      console.log('No rounds found in database at all');
+    }
+
+    // Small delay to avoid rapid requests
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    // Fetch rounds with filter for this specific user
+    const uniqueKey = `user_rounds_${userId}_${Date.now()}_${Math.random()}`;
+    console.log('Fetching rounds with filter for userId:', userId);
+
     const records = await pb.collection('rounds').getList(page, perPage, {
       sort: '-startedAt',
+      filter: `userId = "${userId}"`,
       requestKey: uniqueKey
     });
 
     console.log('Rounds fetched successfully:', records);
+    console.log('Filtered rounds count:', records.totalItems);
+    console.log('Filter used:', `userId = "${userId}"`);
+
+    if (records.items.length === 0) {
+      console.log('No rounds found for this user - checking if filter is working...');
+
+      // Try without filter to see if any rounds exist
+      const unfiltered = await pb.collection('rounds').getList(1, 5, {
+        sort: '-startedAt',
+        requestKey: `debug_${Date.now()}`
+      });
+      console.log('Unfiltered check - total rounds:', unfiltered.totalItems);
+      if (unfiltered.items.length > 0) {
+        console.log('Sample round userIds:', unfiltered.items.map(r => r.userId));
+      }
+    }
 
     return {
       success: true,

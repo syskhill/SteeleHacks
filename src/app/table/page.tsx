@@ -311,16 +311,35 @@ const BlackjackTable: React.FC = () => {
     const dealerHand = [newDeck.pop()!, newDeck.pop()!];
 
     // Create a round record if user is authenticated
-    if (isAuthenticated && userId) {
+    console.log('Checking if should create round:', {
+      isAuthenticated,
+      userId,
+      pbAuthValid: pb.authStore.isValid
+    });
+
+    if (isAuthenticated && userId && pb.authStore.isValid) {
       try {
+        console.log('Creating round for authenticated user:', userId);
         const seed = Math.random().toString(36).substring(2, 15);
         const roundResult = await createRound(userId, seed);
+
+        console.log('Round creation result:', roundResult);
+
         if (roundResult.success && roundResult.roundId) {
           setCurrentRoundId(roundResult.roundId);
+          console.log('Round ID set:', roundResult.roundId);
+        } else {
+          console.error('Round creation failed:', roundResult.error);
         }
       } catch (error) {
         console.error('Failed to create round:', error);
       }
+    } else {
+      console.log('Not creating round because:', {
+        isAuthenticated,
+        userId,
+        pbAuthValid: pb.authStore.isValid
+      });
     }
 
     setGame({

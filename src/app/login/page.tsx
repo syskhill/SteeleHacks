@@ -141,6 +141,7 @@ const Login = () => {
                                     <span className="text-sm text-gray-500">or</span>
                                     <div className="flex-1 h-px bg-gray-300"></div>
                                 </div>
+<<<<<<< HEAD
                                 <Button
                                     variant="outline"
                                     className="w-full"
@@ -157,6 +158,15 @@ const Login = () => {
                                     type="button"
                                 >
                                     Don&apos;t have an account? Sign up
+=======
+                                <Button variant="outline" className="w-full" onClick={async () => {
+                                    const result = await guestLogin();
+                                    if (result.success) {
+                                        router.push('/table');
+                                    }
+                                }}>
+                                    Continue as Guest
+>>>>>>> 463264e (rollback)
                                 </Button>
                             </CardFooter>
                         </form>
