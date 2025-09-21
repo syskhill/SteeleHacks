@@ -120,3 +120,9 @@
     @apply bg-background text-foreground;
   }
 }
+
+.text-stroke-navy {
+  -webkit-text-stroke: 1.5px #000050; /* For Safari/Chrome */
+  text-stroke: 1.5px #000050;         /* For other browsers */
+  color: white; /* This makes the text white */
+}

@@ -60,13 +60,29 @@ const BarChart: React.FC<{ data: { label: string; value: number; color: string }
 };
 
 // Card display component
-const CardDisplay: React.FC<{ card: Card }> = ({ card }) => (
-  <div className={`inline-block w-8 h-12 bg-white text-black text-xs font-bold rounded border border-gray-300 flex items-center justify-center mx-1 ${
-    card.suit === '♥' || card.suit === '♦' ? 'text-red-600' : 'text-black'
-  }`}>
-    {card.value}{card.suit}
-  </div>
-);
+const CardDisplay: React.FC<{ card: Card }> = ({ card }) => {
+  // Debug log to check card structure
+  console.log('CardDisplay received card:', card);
+  console.log('Card value:', card.value, 'Card suit:', card.suit);
+
+  // Handle malformed card data
+  if (!card || typeof card !== 'object' || !card.value || !card.suit) {
+    console.warn('Malformed card data:', card);
+    return (
+      <div className="inline-block w-8 h-12 bg-gray-300 text-gray-600 text-xs font-bold rounded border border-gray-400 flex items-center justify-center flex-shrink-0">
+        ?
+      </div>
+    );
+  }
+
+  return (
+    <div className={`inline-block w-8 h-12 bg-white text-black text-xs font-bold rounded border border-gray-300 flex items-center justify-center flex-shrink-0 ${
+      card.suit === '♥' || card.suit === '♦' ? 'text-red-600' : 'text-black'
+    }`}>
+      {card.value}{card.suit}
+    </div>
+  );
+};
 
 // Hand analysis table component
 const HandAnalysisTable: React.FC<{ analyses: HandAnalysisResult[] }> = ({ analyses }) => {
@@ -105,13 +121,15 @@ const HandAnalysisTable: React.FC<{ analyses: HandAnalysisResult[] }> = ({ analy
                   <CardDisplay card={analysis.dealerUpCard} />
                 </td>
                 <td className="p-2">
-                  {analysis.dealerFinalHand ? (
-                    analysis.dealerFinalHand.map((card, i) => (
-                      <CardDisplay key={i} card={card} />
-                    ))
-                  ) : (
-                    <span className="text-gray-400 text-xs">N/A</span>
-                  )}
+                  <div className="flex flex-wrap items-center gap-1 min-w-fit">
+                    {analysis.dealerFinalHand ? (
+                      analysis.dealerFinalHand.map((card, i) => (
+                        <CardDisplay key={i} card={card} />
+                      ))
+                    ) : (
+                      <span className="text-gray-400 text-xs">N/A</span>
+                    )}
+                  </div>
                 </td>
                 <td className="p-2">
                   <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded">

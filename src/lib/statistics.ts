@@ -105,6 +105,26 @@ export async function getUserStatistics(userId: string): Promise<{ success: bool
         continue; // Skip incomplete rounds
       }
 
+      // Debug logging to check card structure
+      console.log('Round ID:', round.id);
+      console.log('Player hand from DB:', round.outcomes.playerHand);
+      console.log('Dealer hand from DB:', round.outcomes.dealerHand);
+
+      // Ensure cards are properly structured
+      const playerHand = Array.isArray(round.outcomes.playerHand) ? round.outcomes.playerHand : [];
+      const dealerHand = Array.isArray(round.outcomes.dealerHand) ? round.outcomes.dealerHand : [];
+
+      // Check if cards have required properties
+      const validPlayerHand = playerHand.every((card: any) => card && typeof card === 'object' && card.value && card.suit);
+      const validDealerHand = dealerHand.every((card: any) => card && typeof card === 'object' && card.value && card.suit);
+
+      if (!validPlayerHand || !validDealerHand) {
+        console.warn('Invalid card data found in round:', round.id);
+        console.warn('Player hand valid:', validPlayerHand, playerHand);
+        console.warn('Dealer hand valid:', validDealerHand, dealerHand);
+        continue; // Skip this round if cards are malformed
+      }
+
       totalGames++;
       const outcomes = round.outcomes;
 
@@ -129,11 +149,19 @@ export async function getUserStatistics(userId: string): Promise<{ success: bool
       // Strategy analysis - analyze each recorded action
       if (outcomes.playerHand.length >= 2 && outcomes.dealerHand.length >= 1) {
 
-        // If we have recorded actions, use them directly
+        // If we have recorded actions, use them to analyze decisions but show only one result per round
         if (round.actions && round.actions.length > 0) {
-          // Analyze each action taken during the hand
+          // Analyze each action taken during the hand for strategy accuracy
+          let roundOptimalDecisions = 0;
+          let roundTotalDecisions = 0;
+          let worstDeviation = 'MINOR';
+          let keyAction = '';
+          let keyOptimalAction = '';
+          let keyExplanation = '';
+
           for (const action of round.actions) {
             totalDecisions++;
+            roundTotalDecisions++;
 
             // Analyze this specific action
             const analysis = analyzeDecision(
@@ -143,30 +171,61 @@ export async function getUserStatistics(userId: string): Promise<{ success: bool
               action.playerHandBefore.length === 2 // Can double down only on first decision
             );
 
-            if (analysis.wasOptimal) optimalDecisions++;
-            else {
+            if (analysis.wasOptimal) {
+              optimalDecisions++;
+              roundOptimalDecisions++;
+            } else {
               if (analysis.deviation === 'MINOR') minorDeviations++;
               else if (analysis.deviation === 'MODERATE') moderateDeviations++;
               else majorDeviations++;
-            }
 
-            handAnalyses.push({
-              roundId: round.id,
-              date: action.timestamp,
-              playerHand: action.playerHandBefore,
-              dealerUpCard: action.dealerUpCard,
-              dealerFinalHand: outcomes.dealerHand,
-              finalResult: outcomes.result,
-              betAmount: outcomes.betAmount,
-              payout: outcomes.payout,
-              optimalAction: analysis.optimal.optimalAction,
-              actualAction: analysis.actualAction,
-              wasOptimal: analysis.wasOptimal,
-              deviation: analysis.deviation,
-              explanation: analysis.explanation,
-              confidence: analysis.optimal.confidence
-            });
+              // Track the worst deviation for this round
+              if (analysis.deviation === 'MAJOR' || (worstDeviation !== 'MAJOR' && analysis.deviation === 'MODERATE')) {
+                worstDeviation = analysis.deviation;
+                keyAction = analysis.actualAction;
+                keyOptimalAction = analysis.optimal.optimalAction;
+                keyExplanation = analysis.explanation;
+              }
+            }
           }
+
+          // If all decisions were optimal, use the first action for display
+          if (roundOptimalDecisions === roundTotalDecisions) {
+            const firstAction = round.actions[0];
+            const analysis = analyzeDecision(
+              firstAction.playerHandBefore,
+              firstAction.dealerUpCard,
+              firstAction.action,
+              firstAction.playerHandBefore.length === 2
+            );
+            keyAction = analysis.actualAction;
+            keyOptimalAction = analysis.optimal.optimalAction;
+            keyExplanation = analysis.explanation;
+          }
+
+          // Debug log the hands being added to analysis
+          console.log('Adding consolidated hand analysis for round:', round.id);
+          console.log('Final player hand:', outcomes.playerHand);
+          console.log('Dealer up card:', round.actions[0].dealerUpCard);
+          console.log('Dealer final hand for analysis:', outcomes.dealerHand);
+
+          // Add one consolidated analysis per round showing final hands
+          handAnalyses.push({
+            roundId: round.id,
+            date: round.endedAt || round.startedAt,
+            playerHand: outcomes.playerHand, // Final complete player hand
+            dealerUpCard: round.actions[0].dealerUpCard,
+            dealerFinalHand: outcomes.dealerHand,
+            finalResult: outcomes.result,
+            betAmount: outcomes.betAmount,
+            payout: outcomes.payout,
+            optimalAction: keyOptimalAction,
+            actualAction: keyAction,
+            wasOptimal: roundOptimalDecisions === roundTotalDecisions,
+            deviation: worstDeviation as 'MINOR' | 'MODERATE' | 'MAJOR',
+            explanation: keyExplanation,
+            confidence: 90 // High confidence for consolidated analysis
+          });
         } else {
           // Fallback to old inference method for rounds without recorded actions
           totalDecisions++;
@@ -196,10 +255,16 @@ export async function getUserStatistics(userId: string): Promise<{ success: bool
             else majorDeviations++;
           }
 
+          // Debug log the fallback case
+          console.log('Using fallback analysis for round:', round.id);
+          console.log('Final player hand (fallback):', outcomes.playerHand);
+          console.log('Dealer up card (first card):', outcomes.dealerHand[0]);
+          console.log('Dealer final hand (fallback):', outcomes.dealerHand);
+
           handAnalyses.push({
             roundId: round.id,
             date: round.endedAt || round.startedAt,
-            playerHand: initialHand,
+            playerHand: outcomes.playerHand, // Use final complete player hand
             dealerUpCard: outcomes.dealerHand[0],
             dealerFinalHand: outcomes.dealerHand,
             finalResult: outcomes.result,
