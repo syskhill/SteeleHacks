@@ -1,6 +1,6 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
 import { FlatCompat } from "@eslint/eslintrc";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -8,11 +8,9 @@ const __dirname = dirname(__filename);
 const compat = new FlatCompat({ baseDirectory: __dirname });
 
 export default [
-  // Next presets
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
-
-  // Project-wide settings
-  {
+  // Use ONE compat.config block so rules merge over Next presets
+  ...compat.config({
+    extends: ["next/core-web-vitals", "next/typescript"],
     ignores: [
       "node_modules/**",
       ".next/**",
@@ -20,15 +18,12 @@ export default [
       "build/**",
       "next-env.d.ts",
     ],
-  },
-
-  // 🔧 Force overrides for TS/TSX so they WIN over presets
-  {
-    files: ["**/*.ts", "**/*.tsx"],
     rules: {
+      // kill the two blockers everywhere
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unused-vars": "off",
-      // (keep the Next rule disables if you added them earlier)
+
+      // (optional) keep these off if you disabled them earlier
       "@next/next/google-font-display": "off",
       "@next/next/google-font-preconnect": "off",
       "@next/next/inline-script-id": "off",
@@ -51,5 +46,5 @@ export default [
       "@next/next/no-typos": "off",
       "@next/next/no-unwanted-polyfillio": "off",
     },
-  },
+  }),
 ];
