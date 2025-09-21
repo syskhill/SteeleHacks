@@ -21,15 +21,15 @@ const ProgressBar: React.FC<{ value: number; max: number; color: string; label: 
   );
 };
 
-// Bar chart component
+// Bar chart component - shows proportional percentages that add up to 100%
 const BarChart: React.FC<{ data: { label: string; value: number; color: string }[] }> = ({ data }) => {
-  const maxValue = Math.max(...data.map(d => d.value), 1); // Ensure at least 1 to avoid division by 0
+  const totalValue = data.reduce((sum, item) => sum + item.value, 0);
 
   return (
     <div className="space-y-4">
       {data.map((item, index) => {
-        const percentage = maxValue > 0 ? (item.value / maxValue) * 100 : 0;
-        const minWidth = item.value > 0 ? Math.max(percentage, 15) : 0; // Minimum 15% width if value > 0
+        const percentage = totalValue > 0 ? (item.value / totalValue) * 100 : 0;
+        const minWidth = item.value > 0 ? Math.max(percentage, 8) : 0; // Minimum 8% width if value > 0
 
         return (
           <div key={index} className="flex items-center">
@@ -40,13 +40,13 @@ const BarChart: React.FC<{ data: { label: string; value: number; color: string }
                 style={{ width: `${minWidth}%` }}
               >
                 <span className="text-xs font-bold text-white">{item.value}</span>
-                {percentage > 25 && (
+                {percentage > 20 && (
                   <span className="text-xs text-white opacity-75">
                     {percentage.toFixed(1)}%
                   </span>
                 )}
               </div>
-              {percentage <= 25 && item.value > 0 && (
+              {percentage <= 20 && item.value > 0 && (
                 <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-gray-300">
                   {percentage.toFixed(1)}%
                 </span>
