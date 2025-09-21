@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# pocketbase database files (contains sensitive data)
+pb_data/data.db*
+pb_data/auxiliary.db*
+pb_data/logs.db*
