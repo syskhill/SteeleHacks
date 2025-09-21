@@ -1,5 +1,9 @@
 /// <reference path="../pb_data/types.d.ts" />
 migrate((app) => {
+  const collection = app.findCollectionByNameOrId("pbc_225224730");
+
+  return app.delete(collection);
+}, (app) => {
   const collection = new Collection({
     "createRule": null,
     "deleteRule": null,
@@ -39,10 +43,10 @@ migrate((app) => {
         "type": "autodate"
       }
     ],
-    "id": "pbc_4285667772",
+    "id": "pbc_225224730",
     "indexes": [],
     "listRule": null,
-    "name": "test",
+    "name": "rounds",
     "system": false,
     "type": "base",
     "updateRule": null,
@@ -50,8 +54,4 @@ migrate((app) => {
   });
 
   return app.save(collection);
-}, (app) => {
-  const collection = app.findCollectionByNameOrId("pbc_4285667772");
-
-  return app.delete(collection);
 })

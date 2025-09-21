@@ -17,11 +17,58 @@
     "name": "rounds",
     "type": "base",
     "schema": [
-      {"name": "userId", "type": "relation", "required": true, "options": {"collectionId": "users"}},
-      {"name": "seed", "type": "text", "required": true},
-      {"name": "startedAt", "type": "date", "required": true},
-      {"name": "endedAt", "type": "date", "required": false},
-      {"name": "outcomes", "type": "json", "required": true}
+      {
+        "name": "userId",
+        "type": "relation",
+        "required": true,
+        "options": {
+          "collectionId": "_pb_users_auth_",
+          "cascadeDelete": false,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": []
+        }
+      },
+      {
+        "name": "seed",
+        "type": "text",
+        "required": true,
+        "options": {
+          "min": null,
+          "max": null,
+          "pattern": ""
+        }
+      },
+      {
+        "name": "startedAt",
+        "type": "date",
+        "required": true,
+        "options": {
+          "min": "",
+          "max": ""
+        }
+      },
+      {
+        "name": "endedAt",
+        "type": "date",
+        "required": false,
+        "options": {
+          "min": "",
+          "max": ""
+        }
+      },
+      {
+        "name": "outcomes",
+        "type": "json",
+        "required": false,
+        "options": {}
+      },
+      {
+        "name": "actions",
+        "type": "json",
+        "required": false,
+        "options": {}
+      }
     ],
     "listRule": "userId = @request.auth.id",
     "viewRule": "userId = @request.auth.id",
