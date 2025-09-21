@@ -204,8 +204,18 @@ interface RoundData {
   isBlackjack: boolean;
 }
 
+interface PlayerAction {
+  action: 'HIT' | 'STAND' | 'DOUBLE' | 'SPLIT';
+  timestamp: string;
+  playerHandBefore: any[];
+  playerScoreBefore: number;
+  dealerUpCard: any;
+}
+
 export async function createRound(userId: string, seed: string): Promise<{ success: boolean; roundId?: string; error?: string }> {
   try {
+    console.log('Creating round with userId:', userId);
+
     const record = await pb.collection('rounds').create({
       userId: userId,
       seed: seed,
@@ -213,11 +223,14 @@ export async function createRound(userId: string, seed: string): Promise<{ succe
       outcomes: {}
     });
 
+    console.log('Round created successfully:', record);
+
     return {
       success: true,
       roundId: record.id
     };
   } catch (error) {
+    console.error('Full create round error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to create round'
@@ -225,12 +238,18 @@ export async function createRound(userId: string, seed: string): Promise<{ succe
   }
 }
 
-export async function updateRoundOutcomes(roundId: string, outcomes: RoundData): Promise<{ success: boolean; error?: string }> {
+export async function updateRoundOutcomes(roundId: string, outcomes: RoundData, actions?: PlayerAction[]): Promise<{ success: boolean; error?: string }> {
   try {
-    await pb.collection('rounds').update(roundId, {
+    const updateData: any = {
       endedAt: new Date().toISOString(),
       outcomes: outcomes
-    });
+    };
+
+    if (actions && actions.length > 0) {
+      updateData.actions = actions;
+    }
+
+    await pb.collection('rounds').update(roundId, updateData);
 
     return {
       success: true
@@ -243,12 +262,100 @@ export async function updateRoundOutcomes(roundId: string, outcomes: RoundData):
   }
 }
 
+export async function addActionToRound(roundId: string, action: PlayerAction): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Get current round to append to existing actions
+    const round = await pb.collection('rounds').getOne(roundId);
+    const existingActions = round.actions || [];
+
+    await pb.collection('rounds').update(roundId, {
+      actions: [...existingActions, action]
+    });
+
+    return {
+      success: true
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to add action to round'
+    };
+  }
+}
+
+export async function testRoundsCollection(): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Try to get any records from rounds collection to test if it exists
+    const records = await pb.collection('rounds').getList(1, 1);
+    console.log('Rounds collection exists, found records:', records.totalItems);
+    return { success: true };
+  } catch (error) {
+    console.error('Rounds collection test failed:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Rounds collection test failed'
+    };
+  }
+}
+
+export async function testCreateRound(): Promise<{ success: boolean; error?: string }> {
+  try {
+    const userId = pb.authStore.record?.id;
+    if (!userId) {
+      return {
+        success: false,
+        error: 'User not authenticated'
+      };
+    }
+
+    console.log('Testing round creation with userId:', userId);
+
+    const result = await createRound(userId, 'test-seed-123');
+    if (result.success) {
+      console.log('Test round created successfully:', result.roundId);
+      return { success: true };
+    } else {
+      return {
+        success: false,
+        error: result.error
+      };
+    }
+  } catch (error) {
+    console.error('Test create round failed:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Test create round failed'
+    };
+  }
+}
+
 export async function getUserRounds(userId: string, page: number = 1, perPage: number = 10): Promise<{ success: boolean; rounds?: any[]; totalItems?: number; error?: string }> {
   try {
+    console.log('Fetching rounds for userId:', userId);
+
+    // Check if user is authenticated
+    if (!pb.authStore.isValid || pb.authStore.record?.id !== userId) {
+      return {
+        success: false,
+        error: 'User not authenticated or unauthorized'
+      };
+    }
+
+    // First test if collection exists
+    const testResult = await testRoundsCollection();
+    if (!testResult.success) {
+      return {
+        success: false,
+        error: `Rounds collection error: ${testResult.error}`
+      };
+    }
+
+    // Fetch rounds - PocketBase rules will automatically filter by authenticated user
     const records = await pb.collection('rounds').getList(page, perPage, {
-      filter: `userId="${userId}"`,
       sort: '-startedAt'
     });
+
+    console.log('Rounds fetched successfully:', records);
 
     return {
       success: true,
@@ -256,9 +363,10 @@ export async function getUserRounds(userId: string, page: number = 1, perPage: n
       totalItems: records.totalItems
     };
   } catch (error) {
+    console.error('Full error object:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch user rounds'
+      error: error instanceof Error ? error.message : 'Something went wrong while processing your request.'
     };
   }
 }

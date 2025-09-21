@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {login, logout, isAuthenticated, pb} from '../../lib/auth';
-import { getUserBalance, updateUserBalance, initializeUserBalance, createRound, updateRoundOutcomes } from '../../lib/userApiSimple';
+import { getUserBalance, updateUserBalance, initializeUserBalance, createRound, updateRoundOutcomes, addActionToRound } from '../../lib/userApiSimple';
 
 // Type definitions
 interface GameState {
@@ -52,6 +52,7 @@ const BlackjackTable: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userId, setUserId] = useState<string>('');
   const [currentRoundId, setCurrentRoundId] = useState<string>('');
+  const [roundActions, setRoundActions] = useState<any[]>([]);
   
   const playerHandRef = useRef<HTMLDivElement>(null);
   const dealerHandRef = useRef<HTMLDivElement>(null);
@@ -257,26 +258,64 @@ const BlackjackTable: React.FC = () => {
     setMessage({ text: '', type: 'info' });
   };
 
-  const hit = () => {
+  const hit = async () => {
     if (game.gameOver || game.playerHand.length === 0) return;
-    
+
+    // Track the action before executing it
+    if (isAuthenticated && userId && currentRoundId) {
+      const action = {
+        action: 'HIT' as const,
+        timestamp: new Date().toISOString(),
+        playerHandBefore: [...game.playerHand],
+        playerScoreBefore: calculateHand(game.playerHand),
+        dealerUpCard: game.dealerHand[0]
+      };
+
+      setRoundActions(prev => [...prev, action]);
+
+      try {
+        await addActionToRound(currentRoundId, action);
+      } catch (error) {
+        console.error('Failed to track action:', error);
+      }
+    }
+
     const drawn = popCardFromDeck();
     const newPlayerHand = [...game.playerHand, drawn];
     setGame(prev => ({ ...prev, playerHand: newPlayerHand }));
-    
+
     const playerScore = calculateHand(newPlayerHand);
-    
+
     if (playerScore > 21) {
       endGame('Bust! You lose. 💸', -1, 'error');
     }
   };
 
-  const stand = () => {
+  const stand = async () => {
     if (game.gameOver || game.playerHand.length === 0) return;
-    
+
+    // Track the stand action
+    if (isAuthenticated && userId && currentRoundId) {
+      const action = {
+        action: 'STAND' as const,
+        timestamp: new Date().toISOString(),
+        playerHandBefore: [...game.playerHand],
+        playerScoreBefore: calculateHand(game.playerHand),
+        dealerUpCard: game.dealerHand[0]
+      };
+
+      setRoundActions(prev => [...prev, action]);
+
+      try {
+        await addActionToRound(currentRoundId, action);
+      } catch (error) {
+        console.error('Failed to track action:', error);
+      }
+    }
+
     // Reveal dealer hidden card (UI uses game.gameOver flag to reveal)
     setGame(prev => ({ ...prev, gameOver: true }));
-    
+
     animationRef.current = setTimeout(() => {
       // Work with local copies so we can update state incrementally and compute score correctly
       let dealerHand = [...game.dealerHand];
@@ -291,25 +330,25 @@ const BlackjackTable: React.FC = () => {
         setGame(prev => ({ ...prev, dealerHand, deck: deckCopy }));
         // optional small delay between cards could be added with chained timeouts for animation
       }
-       
+
       const playerScore = calculateHand(game.playerHand);
       let result = 0;
-      
+
       if (dealerScore > 21 || playerScore > dealerScore) result = 1;
       else if (playerScore < dealerScore) result = -1;
       else result = 0;
-      
-      const msg = result > 0 
-        ? 'Panthers Win! 🎉' 
-        : result < 0 
-        ? 'Mountaineers Win! Couches are burning! 😤' 
+
+      const msg = result > 0
+        ? 'Panthers Win! 🎉'
+        : result < 0
+        ? 'Mountaineers Win! Couches are burning! 😤'
         : 'Push! 🤝';
-      
+
       endGame(msg, result, result > 0 ? 'success' : result < 0 ? 'error' : 'info');
     }, 800);
   };
 
-  const doubleDown = () => {
+  const doubleDown = async () => {
     // Check if user has enough balance to double the bet
     if (gameState.bankroll < gameState.bet) {
       showMessage('Insufficient funds to double down!', 'error');
@@ -319,6 +358,25 @@ const BlackjackTable: React.FC = () => {
     if (game.playerHand.length !== 2) {
       showMessage('Can only double down on first two cards!', 'error');
       return;
+    }
+
+    // Track the double down action
+    if (isAuthenticated && userId && currentRoundId) {
+      const action = {
+        action: 'DOUBLE' as const,
+        timestamp: new Date().toISOString(),
+        playerHandBefore: [...game.playerHand],
+        playerScoreBefore: calculateHand(game.playerHand),
+        dealerUpCard: game.dealerHand[0]
+      };
+
+      setRoundActions(prev => [...prev, action]);
+
+      try {
+        await addActionToRound(currentRoundId, action);
+      } catch (error) {
+        console.error('Failed to track action:', error);
+      }
     }
 
     // Subtract additional bet amount from bankroll
@@ -384,8 +442,9 @@ const BlackjackTable: React.FC = () => {
           isBlackjack: isBlackjack
         };
 
-        await updateRoundOutcomes(currentRoundId, roundData);
+        await updateRoundOutcomes(currentRoundId, roundData, roundActions);
         console.log('Round outcomes updated:', roundData);
+        console.log('Round actions tracked:', roundActions);
       } catch (error) {
         console.error('Failed to update round outcomes:', error);
       }
@@ -412,6 +471,7 @@ const BlackjackTable: React.FC = () => {
     setGameMode('betting');
     clearBet(); // Reset bet for new round
     setCurrentRoundId(''); // Clear current round
+    setRoundActions([]); // Clear actions for new round
   };
 
   const resetHands = () => {
