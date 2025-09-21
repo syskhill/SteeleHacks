@@ -156,7 +156,7 @@ export async function getUserStatistics(userId: string): Promise<{ success: bool
             firstAction.playerHandBefore.length === 2
           );
 
-          let keyAction = firstAnalysis.actualAction;
+          let keyAction = firstAction.action; // Use original action from database
           let keyOptimalAction = firstAnalysis.optimal.optimalAction;
           let keyExplanation = firstAnalysis.explanation;
           let worstDeviation = firstAnalysis.deviation;
