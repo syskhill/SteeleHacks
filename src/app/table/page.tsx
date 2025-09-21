@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import {login, logout, isAuthenticated, pb, getGuestUser, isGuestUser} from '../../lib/auth';
+import { login, logout, isAuthenticated, pb, getGuestUser, isGuestUser } from '../../lib/auth';
 import { getUserBalance, updateUserBalance, initializeUserBalance, createRound, updateRoundOutcomes, addActionToRound } from '../../lib/userApiSimple';
 
 // Type definitions
@@ -40,7 +40,7 @@ const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'
 
 const BlackjackTable: React.FC = () => {
   const router = useRouter();
-  
+
   // Combined state management
   const [gameState, setGameState] = useState<GameState>({
     player: '',
@@ -67,7 +67,7 @@ const BlackjackTable: React.FC = () => {
   const [currentRoundId, setCurrentRoundId] = useState<string>('');
   const [roundActions, setRoundActions] = useState<any[]>([]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  
+
   const playerHandRef = useRef<HTMLDivElement>(null);
   const dealerHandRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<NodeJS.Timeout | null>(null);
@@ -90,7 +90,7 @@ const BlackjackTable: React.FC = () => {
           if (balanceResult.success && balanceResult.balance !== undefined) {
             setGameState(prev => ({
               ...prev,
-              bankroll: balanceResult.balance,
+              bankroll: balanceResult.balance !== undefined ? balanceResult.balance : 0,
               player: pb.authStore.record?.email || 'Anonymous'
             }));
           }
@@ -218,7 +218,7 @@ const BlackjackTable: React.FC = () => {
     setGame(prev => ({ ...prev, deck: newDeck }));
     return drawn;
   };
-  
+
   // Betting functions
   const addChip = (amount: number) => {
     // Check if user has sufficient balance
@@ -298,7 +298,7 @@ const BlackjackTable: React.FC = () => {
       showMessage('Place a bet first!', 'error');
       return;
     }
-    
+
     // Transition to playing mode
     setGameMode('playing');
     initGame();
@@ -759,13 +759,22 @@ const BlackjackTable: React.FC = () => {
     // Update round outcomes if authenticated and round exists
     if (isAuthenticated && userId && currentRoundId) {
       try {
-        const roundData = {
+        const roundData: {
+          playerHand: Card[];
+          dealerHand: Card[];
+          playerScore: number;
+          dealerScore: number;
+          betAmount: number;
+          result: 'win' | 'lose' | 'push';
+          payout: number;
+          isBlackjack: boolean;
+        } = {
           playerHand: playerHand.cards,
           dealerHand: game.dealerHand,
           playerScore: playerScore,
           dealerScore: dealerScore,
           betAmount: playerHand.bet,
-          result: resultString,
+          result: resultString as 'win' | 'lose' | 'push',
           payout: payout,
           isBlackjack: isBlackjack
         };
@@ -946,7 +955,7 @@ const BlackjackTable: React.FC = () => {
     backgroundRepeat: 'no-repeat',
     backgroundAttachment: 'fixed'     // optional: keep background fixed while scrolling
   } : undefined;
-  
+
   // Check for blackjacks on initial deal
   useEffect(() => {
     if (game.playerHands[0]?.cards.length === 2 && game.dealerHand.length === 2 && gameMode === 'playing' && !game.isSplit) {
@@ -1094,7 +1103,7 @@ const BlackjackTable: React.FC = () => {
               {/* Betting Zone */}
               <div className="bg-black/40 backdrop-blur-md p-8 rounded-2xl shadow-2xl w-full max-w-md text-center space-y-6">
                 <h3 className="text-xl font-semibold text-yellow-400">Place Your Bet</h3>
-                
+
                 {/* Bet Area with Chips */}
                 <div className="min-h-[100px] flex justify-center items-end gap-2 relative">
                   {chips.map((amount, index) => (
@@ -1161,7 +1170,7 @@ const BlackjackTable: React.FC = () => {
                         : 'bg-gradient-to-r from-red-600 to-red-500 text-white hover:scale-105 hover:shadow-red-400/50'
                       }
                     `}
-                    onClick={removeChip}
+                    onClick={() => removeChip()}
                     disabled={chips.length === 0}
                     title="Remove last chip"
                   >
@@ -1222,7 +1231,7 @@ const BlackjackTable: React.FC = () => {
                   </li>
                 </ul>
               </div>
-            </> 
+            </>
           )}
 
           {/* PLAYING MODE */}
@@ -1237,7 +1246,7 @@ const BlackjackTable: React.FC = () => {
                     Score: <span className="text-lime-400">{game.gameOver ? calculateHand(game.dealerHand || []) : getCardValue(game.dealerHand[0] || { value: '0' })}</span>
                   </div>
                 </div>
-                <div 
+                <div
                   ref={dealerHandRef}
                   className="min-h-[120px] flex justify-center items-center bg-black/20 backdrop-blur-sm rounded-xl p-4 border-2 border-white/10 relative"
                 >
@@ -1253,15 +1262,14 @@ const BlackjackTable: React.FC = () => {
                           shadow-lg relative overflow-hidden
                           ${i === 1 && !game.gameOver ? 'bg-gray-800 text-transparent before:content-["?"] before:absolute before:inset-0 before:flex before:items-center before:justify-center before:text-2xl before:font-bold before:text-gray-400' : ''}
                         `}
-                        style={{ 
+                        style={{
                           transform: `translateX(${i * 25}px)`,
                           animationDelay: `${i * 0.2}s`
                         }}
                       >
                         {i !== 1 || game.gameOver ? `${card.value}${card.suit}` : ''}
-                        <div className={`absolute inset-0 opacity-5 ${
-                          card.suit === '♥' || card.suit === '♦' ? 'bg-gradient-to-br from-red-500 to-pink-500' : 'bg-gradient-to-br from-black to-gray-800'
-                        }`}></div>
+                        <div className={`absolute inset-0 opacity-5 ${card.suit === '♥' || card.suit === '♦' ? 'bg-gradient-to-br from-red-500 to-pink-500' : 'bg-gradient-to-br from-black to-gray-800'
+                          }`}></div>
                       </div>
                     ))
                   )}
@@ -1272,11 +1280,11 @@ const BlackjackTable: React.FC = () => {
               {message.text && (
                 <div className={`
                   mx-auto px-6 py-4 rounded-lg text-center font-bold text-xl shadow-2xl max-w-2xl
-                  ${message.type === 'error' 
-                    ? 'bg-red-500/30 border border-red-500/50 text-red-200' 
+                  ${message.type === 'error'
+                    ? 'bg-red-500/30 border border-red-500/50 text-red-200'
                     : message.type === 'success'
-                    ? 'bg-green-500/30 border border-green-500/50 text-green-200'
-                    : 'bg-yellow-500/30 border border-yellow-500/50 text-yellow-200'
+                      ? 'bg-green-500/30 border border-green-500/50 text-green-200'
+                      : 'bg-yellow-500/30 border border-yellow-500/50 text-yellow-200'
                   }
                 `}>
                   {message.text}
@@ -1343,9 +1351,8 @@ const BlackjackTable: React.FC = () => {
                             }}
                           >
                             {card.value}{card.suit}
-                            <div className={`absolute inset-0 opacity-5 ${
-                              card.suit === '♥' || card.suit === '♦' ? 'bg-gradient-to-br from-red-500 to-pink-500' : 'bg-gradient-to-br from-black to-gray-800'
-                            }`}></div>
+                            <div className={`absolute inset-0 opacity-5 ${card.suit === '♥' || card.suit === '♦' ? 'bg-gradient-to-br from-red-500 to-pink-500' : 'bg-gradient-to-br from-black to-gray-800'
+                              }`}></div>
                           </div>
                         ))
                       )}
@@ -1434,10 +1441,10 @@ const BlackjackTable: React.FC = () => {
                   );
                 })()}
               </div>
-            {/* End of PLAYING MODE content */}
+              {/* End of PLAYING MODE content */}
             </div>
-          )}  
-        
+          )}
+
         </div>
 
 
@@ -1452,16 +1459,16 @@ const BlackjackTable: React.FC = () => {
             `}
             onClick={
               gameMode === 'betting' ? resetProgress :
-              gameMode === 'playing' ? undefined : resetForNewGame
+                gameMode === 'playing' ? undefined : resetForNewGame
             }
             disabled={gameMode === 'playing'}
             title={
               gameMode === 'betting' ? 'Reset all progress' :
-              gameMode === 'playing' ? 'Cannot reset during active game' : 'Start a new game'
+                gameMode === 'playing' ? 'Cannot reset during active game' : 'Start a new game'
             }
           >
             {gameMode === 'betting' ? 'Reset Progress' :
-             gameMode === 'playing' ? 'Game in Progress' : 'New Game'}
+              gameMode === 'playing' ? 'Game in Progress' : 'New Game'}
           </button>
         </div>
       </div>
