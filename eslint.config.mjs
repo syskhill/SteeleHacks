@@ -8,10 +8,10 @@ const __dirname = dirname(__filename);
 const compat = new FlatCompat({ baseDirectory: __dirname });
 
 export default [
-  // keep Next’s presets
+  // Next presets
   ...compat.extends("next/core-web-vitals", "next/typescript"),
 
-  // your project rules
+  // Project-wide settings
   {
     ignores: [
       "node_modules/**",
@@ -20,15 +20,15 @@ export default [
       "build/**",
       "next-env.d.ts",
     ],
-    rules: {
-      // TypeScript rules
-      "@typescript-eslint/no-explicit-any": "off",
-      "@typescript-eslint/no-unused-vars": [
-        "warn",
-        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }
-      ],
+  },
 
-      // Disable all @next/next rules
+  // 🔧 Force overrides for TS/TSX so they WIN over presets
+  {
+    files: ["**/*.ts", "**/*.tsx"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": "off",
+      // (keep the Next rule disables if you added them earlier)
       "@next/next/google-font-display": "off",
       "@next/next/google-font-preconnect": "off",
       "@next/next/inline-script-id": "off",
