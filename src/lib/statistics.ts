@@ -171,8 +171,10 @@ export async function getUserStatistics(userId: string): Promise<{ success: bool
               else if (analysis.deviation === 'MODERATE') moderateDeviations++;
               else majorDeviations++;
 
-              // Track the worst deviation for this round
-              if (analysis.deviation === 'MAJOR' || (worstDeviation !== 'MAJOR' && analysis.deviation === 'MODERATE')) {
+              // Track the worst deviation for this round (prioritize by severity)
+              if (keyAction === '' || // First non-optimal action
+                  analysis.deviation === 'MAJOR' || // Always replace with major
+                  (worstDeviation !== 'MAJOR' && analysis.deviation === 'MODERATE')) { // Replace with moderate if not major
                 worstDeviation = analysis.deviation;
                 keyAction = analysis.actualAction;
                 keyOptimalAction = analysis.optimal.optimalAction;
@@ -206,11 +208,11 @@ export async function getUserStatistics(userId: string): Promise<{ success: bool
             finalResult: outcomes.result,
             betAmount: outcomes.betAmount,
             payout: outcomes.payout,
-            optimalAction: keyOptimalAction,
-            actualAction: keyAction,
+            optimalAction: keyOptimalAction || 'N/A',
+            actualAction: keyAction || 'N/A',
             wasOptimal: roundOptimalDecisions === roundTotalDecisions,
             deviation: worstDeviation as 'MINOR' | 'MODERATE' | 'MAJOR',
-            explanation: keyExplanation,
+            explanation: keyExplanation || 'Round analysis complete',
             confidence: 90 // High confidence for consolidated analysis
           });
         } else {
