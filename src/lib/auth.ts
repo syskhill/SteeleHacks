@@ -1,7 +1,7 @@
 import PocketBase from 'pocketbase';
 
 // Initialize PocketBase
-export const pb = new PocketBase('https://8cadc2ad641b.ngrok-free.app'); // Replace with your PocketBase URL
+export const pb = new PocketBase('https://e0871e346ffb.ngrok-free.app'); // Replace with your PocketBase URL
 
 export async function login(email: string, password: string) {
   try {
@@ -22,58 +22,82 @@ export async function login(email: string, password: string) {
   }
 }
 
-
-
-export async function guestLogin() {
+export async function googleLogin() {
   try {
-    // Clear any existing authentication
-    pb.authStore.clear();
+    // First check if OAuth2 providers are available
+    const authMethods = await pb.collection('users').listAuthMethods();
 
-    // Create a temporary anonymous user
-    const guestUser = {
-      id: 'guest_' + Date.now(),
-      email: 'guest@anonymous.com',
-      chips: 1000,
-      isGuest: true
-    };
+    if (!authMethods.oauth2 || !authMethods.oauth2.providers) {
+      throw new Error("OAuth2 providers not configured in PocketBase");
+    }
 
-    // Store guest user in localStorage for persistence
-    localStorage.setItem('guestUser', JSON.stringify(guestUser));
+    const googleProvider = authMethods.oauth2.providers.find((p: any) => p.name === 'google');
+    if (!googleProvider) {
+      throw new Error("Google OAuth2 provider not configured");
+    }
+
+    console.log("Available OAuth2 providers:", authMethods.oauth2.providers);
+
+    // PocketBase OAuth2 with Google
+    const authData = await pb.collection("users").authWithOAuth2({
+      provider: "google",
+      createData: {
+        chips: 1000, // Default starting chips for new Google users
+      }
+    });
+
+    console.log("Google OAuth successful");
+    console.log("Is valid?", pb.authStore.isValid);
+    console.log("User:", pb.authStore.record);
 
     return {
       success: true,
-      user: guestUser
+      user: authData?.record,
     };
-  } catch (error) {
+  } catch (error: any) {
+    console.error("Google login error:", error);
+
+    // More specific error handling
+    let errorMessage = "Google login failed";
+
+    if (error.message?.includes("OAuth2 providers not configured")) {
+      errorMessage = "Google login is not set up on this server";
+    } else if (error.message?.includes("Google OAuth2 provider not configured")) {
+      errorMessage = "Google login is not available";
+    } else if (error.message) {
+      errorMessage = error.message;
+    } else if (error.data?.message) {
+      errorMessage = error.data.message;
+    }
+
     return {
       success: false,
-      error: 'Guest login failed'
+      error: errorMessage,
     };
   }
 }
 
-export function getGuestUser() {
-  if (typeof window !== 'undefined') {
-    const guestData = localStorage.getItem('guestUser');
-    return guestData ? JSON.parse(guestData) : null;
-  }
-  return null;
-}
-
-export function isGuestUser() {
-  const guestUser = getGuestUser();
-  return !!guestUser;
-}
 
 export async function logout() {
   pb.authStore.clear();
-  // Also clear guest user data
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('guestUser');
-  }
 }
 
 export function isAuthenticated() {
-  return pb.authStore.isValid || isGuestUser();
+  return pb.authStore.isValid;
 }
 
+export async function isGoogleOAuthAvailable(): Promise<boolean> {
+  try {
+    const authMethods = await pb.collection('users').listAuthMethods();
+
+    if (!authMethods.oauth2 || !authMethods.oauth2.providers) {
+      return false;
+    }
+
+    const googleProvider = authMethods.oauth2.providers.find((p: any) => p.name === 'google');
+    return !!googleProvider;
+  } catch (error) {
+    console.error("Error checking OAuth availability:", error);
+    return false;
+  }
+}
