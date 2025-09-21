@@ -69,7 +69,7 @@ export default function SettingsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* User Information */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+          <div className="bg-blue-950 rounded-xl p-6 border border-white/20">
             <div className="flex items-center mb-4">
               <User className="text-yellow-400 mr-3" size={24} />
               <h2 className="text-xl font-semibold text-white">Account Information</h2>
@@ -77,22 +77,22 @@ export default function SettingsPage() {
             
             <div className="space-y-4">
               <div>
-                <label className="block text-green-200 text-sm font-medium mb-1">Email</label>
+                <label className="block text-white text-sm font-medium mb-1">Email</label>
                 <div className="bg-white/5 rounded-lg p-3 text-white">{userInfo.email}</div>
               </div>
               
               <div>
-                <label className="block text-green-200 text-sm font-medium mb-1">Member Since</label>
+                <label className="block text-white text-sm font-medium mb-1">Member Since</label>
                 <div className="bg-white/5 rounded-lg p-3 text-white">{new Date(userInfo.joinDate).toLocaleDateString()}</div>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-green-200 text-sm font-medium mb-1">Games Played</label>
+                  <label className="block text-white text-sm font-medium mb-1">Games Played</label>
                   <div className="bg-white/5 rounded-lg p-3 text-white font-semibold">{userInfo.gamesPlayed}</div>
                 </div>
                 <div>
-                  <label className="block text-green-200 text-sm font-medium mb-1">Win Rate</label>
+                  <label className="block text-white text-sm font-medium mb-1">Win Rate</label>
                   <div className="bg-white/5 rounded-lg p-3 text-white font-semibold">{userInfo.winRate}%</div>
                 </div>
               </div>
@@ -100,7 +100,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Change Password */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+          <div className=" bg-blue-950 rounded-xl p-6 border border-white/20">
             <div className="flex items-center mb-4">
               <Lock className="text-yellow-400 mr-3" size={24} />
               <h2 className="text-xl font-semibold text-white">Change Password</h2>
@@ -108,7 +108,7 @@ export default function SettingsPage() {
             
             <div className="space-y-4">
               <div>
-                <label className="block text-green-200 text-sm font-medium mb-1">Current Password</label>
+                <label className="block text-white text-sm font-medium mb-1">Current Password</label>
                 <div className="relative">
                   <input
                     type={showPasswords.current ? 'text' : 'password'}
@@ -129,7 +129,7 @@ export default function SettingsPage() {
               </div>
               
               <div>
-                <label className="block text-green-200 text-sm font-medium mb-1">New Password</label>
+                <label className="block text-white text-sm font-medium mb-1">New Password</label>
                 <div className="relative">
                   <input
                     type={showPasswords.new ? 'text' : 'password'}
@@ -150,7 +150,7 @@ export default function SettingsPage() {
               </div>
               
               <div>
-                <label className="block text-green-200 text-sm font-medium mb-1">Confirm New Password</label>
+                <label className="block text-white text-sm font-medium mb-1">Confirm New Password</label>
                 <div className="relative">
                   <input
                     type={showPasswords.confirm ? 'text' : 'password'}
