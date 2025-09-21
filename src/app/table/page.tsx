@@ -425,12 +425,12 @@ const BlackjackTable: React.FC = () => {
     <>
       <div className={`
         min-h-screen text-white flex flex-col transition-all duration-500
-        ${gameMode === 'betting' ? 'bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900' : 
+        ${gameMode === 'betting' ? "bg-[url('/blackjack.jpg')]" : 
           gameMode === 'playing' || gameMode === 'gameOver' ? 'bg-gradient-to-br from-green-900 via-emerald-900 to-teal-900' : ''}
       `}>
         {/* Background Pattern for Game Mode */}
         {(gameMode === 'playing' || gameMode === 'gameOver') && (
-          <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0 opacity-10 ">
             <div className="absolute inset-0" style={{
               backgroundImage: `radial-gradient(circle at 25% 25%, #22c55e 0%, transparent 50%),
                                 radial-gradient(circle at 75% 75%, #16a34a 0%, transparent 50%)`
@@ -446,9 +446,9 @@ const BlackjackTable: React.FC = () => {
           `}>
             {(gameMode === 'betting' ? '🎰 Backyard Blackjack' : '🎰 Backyard Blackjack')}
           </h1>
-          <div className="bg-black/30 px-4 py-2 rounded-full text-sm flex items-center gap-4">
+          <div className="bg-black/30 px-4 py-2 rounded-full text-sm flex backdrop-blur-md items-center gap-4">
             <span>Pitt Panthers: <span className="font-semibold">{gameState.player || 'Anonymous'}</span></span>
-            <span className={`px-3 py-1 rounded-full text-xs font-bold ${isAuthenticated ? 'bg-green-400/20 text-green-300' : 'bg-yellow-400/20'}`}>
+            <span className={`px-3 py-1 rounded-full text-xs backdrop-blur-md font-bold ${isAuthenticated ? 'bg-green-400/20 text-green-300' : 'bg-yellow-400/20'}`}>
               Balance: ${gameState.bankroll.toLocaleString()}
               {isAuthenticated && <span className="ml-1">🔐</span>}
             </span>
@@ -461,8 +461,8 @@ const BlackjackTable: React.FC = () => {
           {gameMode === 'betting' && (
             <>
               {/* Bankroll Display */}
-              <div className="text-center">
-                <h3 className="text-2xl font-bold text-yellow-400 drop-shadow-md">
+              <div className="text-center px-4 py-2 rounded-full bg-black/30 backdrop-blur-md">
+                <h3 className="text-2xl font-bold text-yellow-400 drop-shadow-md ">
                   Balance: ${gameState.bankroll.toLocaleString()}
                 </h3>
               </div>
@@ -562,7 +562,7 @@ const BlackjackTable: React.FC = () => {
 
           {/* PLAYING MODE */}
           {(gameMode === 'playing' || gameMode === 'gameOver') && (
-            <div className="w-full max-w-6xl space-y-8">
+            <div className="w-full max-w-6xl space-y-8 ">
               {/* Deck */}
               <div 
                 className="absolute left-8 top-1/2 -translate-y-1/2 w-16 h-24 bg-gradient-to-b from-gray-800 to-gray-900 rounded-lg shadow-2xl border-2 border-gray-600 cursor-pointer hover:scale-105 transition-transform z-20"
