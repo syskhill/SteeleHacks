@@ -146,11 +146,22 @@ export async function getUserStatistics(userId: string): Promise<{ success: bool
           // Analyze each action taken during the hand for strategy accuracy
           let roundOptimalDecisions = 0;
           let roundTotalDecisions = 0;
-          let worstDeviation = 'MINOR';
-          let keyAction = '';
-          let keyOptimalAction = '';
-          let keyExplanation = '';
 
+          // Always use the FIRST action as the key decision for display (most strategically important)
+          const firstAction = round.actions[0];
+          const firstAnalysis = analyzeDecision(
+            firstAction.playerHandBefore,
+            firstAction.dealerUpCard,
+            firstAction.action,
+            firstAction.playerHandBefore.length === 2
+          );
+
+          let keyAction = firstAnalysis.actualAction;
+          let keyOptimalAction = firstAnalysis.optimal.optimalAction;
+          let keyExplanation = firstAnalysis.explanation;
+          let worstDeviation = firstAnalysis.deviation;
+
+          // Track strategy accuracy for all actions in the round
           for (const action of round.actions) {
             totalDecisions++;
             roundTotalDecisions++;
@@ -170,31 +181,7 @@ export async function getUserStatistics(userId: string): Promise<{ success: bool
               if (analysis.deviation === 'MINOR') minorDeviations++;
               else if (analysis.deviation === 'MODERATE') moderateDeviations++;
               else majorDeviations++;
-
-              // Track the worst deviation for this round (prioritize by severity)
-              if (keyAction === '' || // First non-optimal action
-                  analysis.deviation === 'MAJOR' || // Always replace with major
-                  (worstDeviation !== 'MAJOR' && analysis.deviation === 'MODERATE')) { // Replace with moderate if not major
-                worstDeviation = analysis.deviation;
-                keyAction = analysis.actualAction;
-                keyOptimalAction = analysis.optimal.optimalAction;
-                keyExplanation = analysis.explanation;
-              }
             }
-          }
-
-          // If all decisions were optimal, use the first action for display
-          if (roundOptimalDecisions === roundTotalDecisions) {
-            const firstAction = round.actions[0];
-            const analysis = analyzeDecision(
-              firstAction.playerHandBefore,
-              firstAction.dealerUpCard,
-              firstAction.action,
-              firstAction.playerHandBefore.length === 2
-            );
-            keyAction = analysis.actualAction;
-            keyOptimalAction = analysis.optimal.optimalAction;
-            keyExplanation = analysis.explanation;
           }
 
 
@@ -210,10 +197,10 @@ export async function getUserStatistics(userId: string): Promise<{ success: bool
             payout: outcomes.payout,
             optimalAction: keyOptimalAction || 'N/A',
             actualAction: keyAction || 'N/A',
-            wasOptimal: roundOptimalDecisions === roundTotalDecisions,
+            wasOptimal: firstAnalysis.wasOptimal,
             deviation: worstDeviation as 'MINOR' | 'MODERATE' | 'MAJOR',
             explanation: keyExplanation || 'Round analysis complete',
-            confidence: 90 // High confidence for consolidated analysis
+            confidence: firstAnalysis.optimal.confidence
           });
         } else {
           // Fallback to old inference method for rounds without recorded actions
