@@ -6,12 +6,11 @@ import { useRouter } from 'next/navigation';
 import { isAuthenticated } from '../lib/auth';
 import Image from 'next/image';
 
-
 const Home = () => {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
-  const pocketbase = new Pocketbase('https://8cadc2ad641b.ngrok-free.app');
+  const pocketbase = new Pocketbase('http://localhost:8090');
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -41,49 +40,46 @@ const Home = () => {
         <p className="text-lg">Play the classic game of blackjack with your friends!</p>
       </header>
       <Image
-        src="/cover.png" // Use the .png extension here
+        src="/cover.png"
         alt="Blackjack Cover"
         width={700}
         height={300}
       />
       <main className="flex flex-col items-center space-y-6 mt-10">
         {isLoggedIn ? (
-          <button
-            className="bg-yellow-500 text-black px-6 py-2 rounded-lg text-xl w-64"
-            onClick={() => router.push('/table')}
-          >
-            Start Game
-          </button>
-        ) : (
-          <div className="text-center">
-            <p className="text-lg mb-4">Please log in to play</p>
-          </div>
-        )}
-        <div className="space-y-4 w-64">
-          {isLoggedIn ? (
+          <>
             <button
-              className="bg-red-500 text-white px-6 py-2 rounded-lg text-xl w-full"
+              className="bg-yellow-500 text-black px-6 py-2 rounded-lg text-xl w-64"
+              onClick={() => router.push('/table')}
+            >
+              Start Game
+            </button>
+            <button
+              className="bg-red-500 text-white px-6 py-2 rounded-lg text-xl w-64"
               onClick={handleLogout}
             >
               Logout
             </button>
-          ) : (
-            <>
-              <button
-                className="bg-black text-white px-6 py-2 rounded-lg text-xl w-full"
-                onClick={() => router.push('/login')}
-              >
-                Login
-              </button>
-              <button
-                className="bg-blue-950 text-white px-6 py-2 rounded-lg text-xl w-full"
-                onClick={() => router.push('/signup')}
-              >
-                Sign Up
-              </button>
-            </>
-          )}
-        </div>
+          </>
+        ) : (
+          <div className="space-y-4 w-64">
+            <p className="text-center text-yellow-400 font-semibold mb-4">
+              Please log in to play
+            </p>
+            <button
+              className="bg-black text-white px-6 py-2 rounded-lg text-xl w-full"
+              onClick={() => router.push('/login')}
+            >
+              Login
+            </button>
+            <button
+              className="bg-blue-950 text-white px-6 py-2 rounded-lg text-xl w-full"
+              onClick={() => router.push('/signup')}
+            >
+              Sign Up
+            </button>
+          </div>
+        )}
       </main>
       <footer className="absolute bottom-0 left-0 right-0 text-center p-4 bg-black">
         <p>Powered by WVU & PITT</p>

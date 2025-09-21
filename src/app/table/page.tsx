@@ -2,7 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+<<<<<<< HEAD
 import { login, logout, isAuthenticated, pb, getGuestUser, isGuestUser } from '../../lib/auth';
+=======
+import {login, logout, isAuthenticated, pb} from '../../lib/auth';
+>>>>>>> 07eadb1 (final final)
 import { getUserBalance, updateUserBalance, initializeUserBalance, createRound, updateRoundOutcomes, addActionToRound } from '../../lib/userApiSimple';
 
 // Type definitions
@@ -75,13 +79,12 @@ const BlackjackTable: React.FC = () => {
   // Load state from localStorage on mount and check authentication
   useEffect(() => {
     const initializeGame = async () => {
-      // Check authentication (both PocketBase and guest)
+      // Check authentication - require login
       const authValid = pb.authStore.isValid;
       const currentUserId = pb.authStore.record?.id;
-      const guestUser = getGuestUser();
 
-      setIsAuthenticated(authValid || !!guestUser);
-      setUserId(currentUserId || guestUser?.id || '');
+      setIsAuthenticated(authValid);
+      setUserId(currentUserId || '');
 
       // Force login if not authenticated
       if (!authValid || !currentUserId) {
@@ -97,7 +100,11 @@ const BlackjackTable: React.FC = () => {
             setGameState(prev => ({
               ...prev,
 <<<<<<< HEAD
+<<<<<<< HEAD
               bankroll: balanceResult.balance !== undefined ? balanceResult.balance : 0,
+=======
+              bankroll: balanceResult.balance || 1000,
+>>>>>>> 07eadb1 (final final)
               player: pb.authStore.record?.email || 'Anonymous'
 =======
               bankroll: balanceResult.balance,
@@ -108,6 +115,7 @@ const BlackjackTable: React.FC = () => {
         } catch (error) {
           console.error('Failed to load user balance:', error);
         }
+<<<<<<< HEAD
 <<<<<<< HEAD
       } else if (guestUser) {
         // Guest user, use guest data
@@ -131,17 +139,24 @@ const BlackjackTable: React.FC = () => {
       } catch (error) {
         console.warn('Clearing corrupted localStorage:', error);
         localStorage.removeItem('blackjackState');
+=======
+      } else {
+        // Not authenticated, redirect to login
+        router.push('/login');
+        return;
+>>>>>>> 07eadb1 (final final)
       }
 
       setIsInitialized(true);
     };
 
     initializeGame();
-  }, []);
+  }, [router]);
 
-  // Save state to localStorage and sync balance with PocketBase
+  // Save state and sync balance with PocketBase
   useEffect(() => {
     const syncBalance = async () => {
+<<<<<<< HEAD
       try {
         localStorage.setItem('blackjackState', JSON.stringify(gameState));
       } catch (error) {
@@ -149,23 +164,19 @@ const BlackjackTable: React.FC = () => {
       }
 
       // If user is authenticated with PocketBase, sync balance with PocketBase
+=======
+      // Only sync for authenticated users
+>>>>>>> 07eadb1 (final final)
       if (pb.authStore.isValid && userId && gameState.bankroll !== undefined) {
         try {
           await updateUserBalance(userId, gameState.bankroll);
         } catch (error) {
           console.error('Failed to sync balance with PocketBase:', error);
         }
-      } else if (isGuestUser() && gameState.bankroll !== undefined) {
-        // Update guest user data in localStorage
-        const guestUser = getGuestUser();
-        if (guestUser) {
-          const updatedGuestUser = { ...guestUser, chips: gameState.bankroll };
-          localStorage.setItem('guestUser', JSON.stringify(updatedGuestUser));
-        }
       }
     };
 
-    if (isInitialized) {
+    if (isInitialized && isAuthenticated) {
       syncBalance();
     }
   }, [gameState, isAuthenticated, userId, isInitialized]);
@@ -179,21 +190,36 @@ const BlackjackTable: React.FC = () => {
     };
   }, []);
 
+  // Seeded random number generator (Linear Congruential Generator)
+  const createSeededRNG = (seed: string) => {
+    let seedValue = 0;
+    for (let i = 0; i < seed.length; i++) {
+      seedValue = (seedValue * 31 + seed.charCodeAt(i)) % 2147483647;
+    }
+
+    return () => {
+      seedValue = (seedValue * 16807) % 2147483647;
+      return (seedValue - 1) / 2147483646;
+    };
+  };
+
   // Game logic functions
-  const createDeck = (): Card[] => {
+  const createDeck = (seed?: string): Card[] => {
     const deck: Card[] = [];
     for (const suit of suits) {
       for (const value of values) {
         deck.push({ suit, value });
       }
     }
-    return shuffle(deck);
+    return shuffle(deck, seed);
   };
 
-  const shuffle = (array: Card[]): Card[] => {
+  const shuffle = (array: Card[], seed?: string): Card[] => {
     const shuffled = [...array];
+    const rng = seed ? createSeededRNG(seed) : Math.random;
+
     for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
+      const j = Math.floor(rng() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     return shuffled;
@@ -312,11 +338,16 @@ const BlackjackTable: React.FC = () => {
   };
 
   const startGame = () => {
+    console.log('startGame called, bet:', gameState.bet, 'gameMode:', gameMode);
     if (gameState.bet === 0) {
       showMessage('Place a bet first!', 'error');
       return;
     }
 
+<<<<<<< HEAD
+=======
+    console.log('Starting game, transitioning to playing mode');
+>>>>>>> 07eadb1 (final final)
     // Transition to playing mode
     setGameMode('playing');
     initGame();
@@ -324,9 +355,23 @@ const BlackjackTable: React.FC = () => {
 
   // Game functions
   const initGame = async () => {
-    const newDeck = createDeck();
+    console.log('initGame called, creating deck and dealing cards');
+
+    // Generate a cryptographically secure seed
+    const generateSecureSeed = () => {
+      const timestamp = Date.now().toString();
+      const randomBytes = crypto.getRandomValues(new Uint8Array(16));
+      const randomString = Array.from(randomBytes, byte => byte.toString(16).padStart(2, '0')).join('');
+      return `${timestamp}-${randomString}`;
+    };
+
+    const seed = generateSecureSeed();
+    console.log('Using seed for deck generation:', seed);
+
+    const newDeck = createDeck(seed);
     const playerCards = [newDeck.pop()!, newDeck.pop()!];
     const dealerHand = [newDeck.pop()!, newDeck.pop()!];
+    console.log('Cards dealt - Player:', playerCards, 'Dealer:', dealerHand);
 
     // Create a round record if user is authenticated
     console.log('Checking if should create round:', {
@@ -337,8 +382,11 @@ const BlackjackTable: React.FC = () => {
 
     if (isAuthenticated && userId && pb.authStore.isValid) {
       try {
+<<<<<<< HEAD
         console.log('Creating round for authenticated user:', userId);
         const seed = Math.random().toString(36).substring(2, 15);
+=======
+>>>>>>> 07eadb1 (final final)
         const roundResult = await createRound(userId, seed);
 
         console.log('Round creation result:', roundResult);
@@ -360,6 +408,7 @@ const BlackjackTable: React.FC = () => {
       });
     }
 
+    console.log('Setting game state with cards');
     setGame({
       deck: newDeck,
       playerHands: [{
@@ -375,6 +424,7 @@ const BlackjackTable: React.FC = () => {
     });
 
     setMessage({ text: '', type: 'info' });
+    console.log('Game initialized successfully');
   };
 
   const hit = async () => {
@@ -715,6 +765,7 @@ const BlackjackTable: React.FC = () => {
 
   const endGame = async (text: string, result: number, type: 'error' | 'success' | 'info') => {
     console.log('endGame called with:', { text, result, type, isSplit: game.isSplit });
+    console.trace('endGame call stack');
 
     // Always set the message first
     setMessage({ text, type });
@@ -918,7 +969,7 @@ const BlackjackTable: React.FC = () => {
           playerScore: calculateHand(primaryHand.cards),
           dealerScore: dealerScore,
           betAmount: updatedHands.reduce((sum, h) => sum + h.bet, 0),
-          result: totalWins > totalLosses ? 'win' : totalLosses > totalWins ? 'lose' : 'push',
+          result: totalWins > totalLosses ? 'win' as const : totalLosses > totalWins ? 'lose' as const : 'push' as const,
           payout: totalPayout,
           isBlackjack: false
         };
@@ -932,6 +983,7 @@ const BlackjackTable: React.FC = () => {
   };
 
   const resetForNewGame = () => {
+    console.log('resetForNewGame called');
     // Clear message first
     setMessage({ text: '', type: 'info' });
 
@@ -995,18 +1047,39 @@ const BlackjackTable: React.FC = () => {
 
   // Check for blackjacks on initial deal
   useEffect(() => {
+    console.log('Blackjack detection effect triggered:', {
+      playerCardsLength: game.playerHands[0]?.cards.length,
+      dealerCardsLength: game.dealerHand.length,
+      gameMode,
+      isSplit: game.isSplit
+    });
+
     if (game.playerHands[0]?.cards.length === 2 && game.dealerHand.length === 2 && gameMode === 'playing' && !game.isSplit) {
       const playerScore = calculateHand(game.playerHands[0].cards);
       const dealerScore = calculateHand(game.dealerHand);
       const playerBlackjack = playerScore === 21;
       const dealerBlackjack = dealerScore === 21;
 
+      console.log('Checking for blackjacks:', {
+        playerScore,
+        dealerScore,
+        playerBlackjack,
+        dealerBlackjack
+      });
+
       // Check for dealer blackjack when showing Ace or 10-value card
       const dealerUpCard = game.dealerHand[0];
       const dealerUpValue = getCardValue(dealerUpCard);
       const shouldCheckDealerBlackjack = dealerUpValue === 11 || dealerUpValue === 10;
 
+      console.log('Dealer blackjack check:', {
+        dealerUpCard,
+        dealerUpValue,
+        shouldCheckDealerBlackjack
+      });
+
       if (shouldCheckDealerBlackjack && dealerBlackjack) {
+        console.log('Dealer has blackjack, ending game');
         // Dealer has blackjack - reveal immediately
         setTimeout(() => {
           setGame(prev => ({ ...prev, gameOver: true }));
@@ -1019,10 +1092,13 @@ const BlackjackTable: React.FC = () => {
           }, 500);
         }, 1000);
       } else if (playerBlackjack) {
+        console.log('Player has blackjack, ending game');
         // Player has blackjack, dealer doesn't
         setTimeout(() => {
           endGame('Blackjack! You win! 🤑', 1, 'success');
         }, 1000);
+      } else {
+        console.log('No blackjacks detected, continuing game');
       }
     }
   }, [game.playerHands[0]?.cards.length, game.dealerHand.length, gameMode, game.isSplit]);
@@ -1081,15 +1157,19 @@ const BlackjackTable: React.FC = () => {
 
           <div className="bg-black/30 px-4 py-2 rounded-full text-sm flex backdrop-blur-md items-center gap-4">
 <<<<<<< HEAD
+<<<<<<< HEAD
             <span>Pitt Panthers: <span className="font-semibold">{isGuestUser() ? 'Anonymous' : (gameState.player || 'Anonymous')}</span></span>
             <span className={`px-3 py-1 rounded-full text-xs backdrop-blur-md font-bold ${pb.authStore.isValid ? 'bg-green-400/20 text-green-300' : isGuestUser() ? 'bg-orange-400/20 text-orange-300' : 'bg-yellow-400/20'}`}>
 =======
             <span>Pitt Panthers: <span className="font-semibold">{gameState.player || 'Player'}</span></span>
             <span className={`px-3 py-1 rounded-full text-xs backdrop-blur-md font-bold ${isAuthenticated ? 'bg-green-400/20 text-green-300' : 'bg-yellow-400/20'}`}>
 >>>>>>> f6d18eb (final commit)
+=======
+            <span>Pitt Panthers: <span className="font-semibold">{gameState.player || 'Anonymous'}</span></span>
+            <span className="px-3 py-1 rounded-full text-xs backdrop-blur-md font-bold bg-green-400/20 text-green-300">
+>>>>>>> 07eadb1 (final final)
               Balance: ${gameState.bankroll.toLocaleString()}
-              {pb.authStore.isValid && <span className="ml-1">🔐</span>}
-              {isGuestUser() && <span className="ml-1">👤</span>}
+              <span className="ml-1">🔐</span>
             </span>
           </div>
         </div>

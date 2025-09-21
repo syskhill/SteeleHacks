@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { login, logout, isAuthenticated, guestLogin } from '../../lib/auth';
+import { login, logout, isAuthenticated } from '../../lib/auth';
 
 const Login = () => {
     const router = useRouter();
@@ -35,7 +35,7 @@ const Login = () => {
                 setEmail('');
                 setPassword('');
                 console.log('Logged in successfully', result.user);
-                router.push('/table'); // Redirect to table page after successful login
+                router.push('/table');
             } else {
                 setError(result.error || 'Login failed');
             }
@@ -50,28 +50,6 @@ const Login = () => {
         logout();
         setIsLoggedIn(false);
     };
-
-    const handleGuestMode = async () => {
-        setError('');
-        setLoading(true);
-
-        try {
-            const result = await guestLogin();
-            if (result.success) {
-                setIsLoggedIn(true);
-                console.log('Guest login successful', result.user);
-                router.push('/table');
-            } else {
-                setError(result.error || 'Guest login failed');
-            }
-        } catch (error) {
-            console.error('Guest login error:', error);
-            setError('Guest login failed');
-        } finally {
-            setLoading(false);
-        }
-    };
-
 
     return (
         <div className="min-h-screen bg-[url('/wood.jpg')] text-white flex flex-col justify-center items-center">
@@ -136,21 +114,6 @@ const Login = () => {
                                 <Button type="submit" className="w-full" disabled={loading}>
                                     {loading ? 'Logging in...' : 'Login'}
                                 </Button>
-                                <div className="flex items-center gap-2 w-full my-2">
-                                    <div className="flex-1 h-px bg-gray-300"></div>
-                                    <span className="text-sm text-gray-500">or</span>
-                                    <div className="flex-1 h-px bg-gray-300"></div>
-                                </div>
-<<<<<<< HEAD
-                                <Button
-                                    variant="outline"
-                                    className="w-full"
-                                    onClick={handleGuestMode}
-                                    type="button"
-                                    disabled={loading}
-                                >
-                                    Continue as Guest
-                                </Button>
                                 <Button
                                     variant="link"
                                     className="w-full"
@@ -158,15 +121,6 @@ const Login = () => {
                                     type="button"
                                 >
                                     Don&apos;t have an account? Sign up
-=======
-                                <Button variant="outline" className="w-full" onClick={async () => {
-                                    const result = await guestLogin();
-                                    if (result.success) {
-                                        router.push('/table');
-                                    }
-                                }}>
-                                    Continue as Guest
->>>>>>> 463264e (rollback)
                                 </Button>
                             </CardFooter>
                         </form>

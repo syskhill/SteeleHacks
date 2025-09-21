@@ -6,15 +6,7 @@ import Pocketbase from 'pocketbase';
 import { getAllUsers } from '@/lib/userApi';
 import { getUserRounds, testRoundsCollection, testCreateRound } from '@/lib/userApiSimple';
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-const pocketbase = new Pocketbase('https://e0871e346ffb.ngrok-free.app');
-=======
-const pocketbase = new Pocketbase('https://f40022cbd7d9.ngrok-free.app/');
->>>>>>> 463264e (rollback)
-=======
-const pocketbase = new Pocketbase('https://ec7c12494f3f.ngrok-free.app/');
->>>>>>> f6d18eb (final commit)
+const pocketbase = new Pocketbase('http://localhost:8090');
 
 async function test() {
     const userID = pocketbase.authStore.record?.id;
@@ -170,146 +162,11 @@ const Test = () => {
                 </Button>
 
                 <Button
-                    onClick={async () => {
-                        setLoading(true);
-                        setError('');
-                        setSuccess('');
-                        try {
-                            // Try to create a round directly
-                            const userId = pocketbase.authStore.record?.id;
-                            if (!userId) {
-                                setError('User not authenticated');
-                                return;
-                            }
-
-                            console.log('Testing direct round creation...');
-                            const testData = {
-                                userId: userId,
-                                seed: 'test-' + Date.now(),
-                                startedAt: new Date().toISOString(),
-                                outcomes: {
-                                    playerHand: [{ value: 'A', suit: '♠' }, { value: 'K', suit: '♥' }],
-                                    dealerHand: [{ value: '10', suit: '♦' }, { value: '7', suit: '♣' }],
-                                    playerScore: 21,
-                                    dealerScore: 17,
-                                    betAmount: 50,
-                                    result: 'win',
-                                    payout: 100,
-                                    isBlackjack: true
-                                }
-                            };
-
-                            const record = await pocketbase.collection('rounds').create(testData);
-                            console.log('Direct round created:', record);
-                            setSuccess(`Direct round created with ID: ${record.id}`);
-                        } catch (err) {
-                            console.error('Direct creation failed:', err);
-                            setError(`Direct creation failed: ${err instanceof Error ? err.message : String(err)}`);
-                        } finally {
-                            setLoading(false);
-                        }
-                    }}
-                    disabled={loading}
-                    className="ml-2"
-                >
-                    {loading ? 'Loading...' : 'Test Direct Round Creation'}
-                </Button>
-
-                <Button
                     onClick={handleGetUserRounds}
                     disabled={loading}
                     className="ml-2"
                 >
                     {loading ? 'Loading...' : 'Get My Rounds'}
-                </Button>
-
-                <Button
-                    onClick={async () => {
-                        setLoading(true);
-                        setError('');
-                        setSuccess('');
-                        try {
-                            const userId = pocketbase.authStore.record?.id;
-                            if (!userId) {
-                                setError('User not authenticated');
-                                return;
-                            }
-
-                            console.log('=== TESTING EXACT QUERY LOGIC ===');
-                            console.log('User ID:', userId);
-
-                            // Test 1: Get all rounds
-                            console.log('Test 1: Get all rounds...');
-                            const allRounds = await pocketbase.collection('rounds').getList(1, 50, {
-                                sort: '-created'
-                            });
-                            console.log('All rounds:', allRounds);
-
-                            // Test 2: Get rounds with filter
-                            console.log('Test 2: Get rounds with filter...');
-                            const filteredRounds = await pocketbase.collection('rounds').getList(1, 50, {
-                                sort: '-created',
-                                filter: `userId = "${userId}"`
-                            });
-                            console.log('Filtered rounds:', filteredRounds);
-
-                            // Test 3: Check userIds
-                            if (allRounds.items.length > 0) {
-                                console.log('UserIDs in database:');
-                                allRounds.items.forEach((round, index) => {
-                                    console.log(`Round ${index + 1}: ID=${round.id}, userId="${round.userId}", matches=${round.userId === userId}`);
-                                });
-                            }
-
-                            setSuccess(`Found ${allRounds.totalItems} total rounds, ${filteredRounds.totalItems} for current user`);
-                        } catch (err) {
-                            console.error('Debug query failed:', err);
-                            setError(`Debug query failed: ${err instanceof Error ? err.message : String(err)}`);
-                        } finally {
-                            setLoading(false);
-                        }
-                    }}
-                    disabled={loading}
-                    className="ml-2"
-                >
-                    {loading ? 'Loading...' : 'Debug Query Logic'}
-                </Button>
-
-                <Button
-                    onClick={async () => {
-                        setLoading(true);
-                        setError('');
-                        setSuccess('');
-                        try {
-                            // Test if it's a permissions issue by checking collection info
-                            const collection = await pocketbase.collections.getOne('rounds');
-                            console.log('Collection info:', collection);
-
-                            // Test different approaches
-                            const tests = [];
-
-                            // Test 1: No filter (should always work if permissions allow)
-                            try {
-                                const allRounds = await pocketbase.collection('rounds').getFullList({
-                                    sort: '-created'
-                                });
-                                tests.push(`✓ No filter: ${allRounds.length} rounds found`);
-                            } catch (e) {
-                                tests.push(`✗ No filter failed: ${e instanceof Error ? e.message : String(e)}`);
-                            }
-
-                            setSuccess(tests.join('\n'));
-                        } catch (err) {
-                            console.error('Collection test failed:', err);
-                            setError(`Collection test failed: ${err instanceof Error ? err.message : String(err)}`);
-                        } finally {
-                            setLoading(false);
-                        }
-                    }}
-                    disabled={loading}
-                    className="ml-2"
-                >
-                    {loading ? 'Loading...' : 'Test Collection Access'}
                 </Button>
             </div>
 
@@ -374,6 +231,5 @@ const Test = () => {
         </div>
     );
 };
-
 
 export default Test;

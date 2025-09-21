@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { login, logout, isAuthenticated, pb, getGuestUser, isGuestUser, guestLogin } from '../../lib/auth';
+import { login, logout, isAuthenticated, pb } from '../../lib/auth';
 import {
     Card,
     CardContent,
@@ -18,7 +18,6 @@ import { Button } from "@/components/ui/button";
 const Settings: React.FC = () => {
     const router = useRouter();
     const [authenticated, setAuthenticated] = useState(false);
-    const [isGuest, setIsGuest] = useState(false);
     const [userEmail, setUserEmail] = useState('');
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' }>({ text: '', type: 'info' });
@@ -42,15 +41,11 @@ const Settings: React.FC = () => {
 
     const checkAuthStatus = () => {
         const authValid = pb.authStore.isValid;
-        const guestUser = getGuestUser();
 
-        setAuthenticated(authValid || !!guestUser);
-        setIsGuest(!!guestUser && !authValid);
+        setAuthenticated(authValid);
 
         if (authValid && pb.authStore.record) {
             setUserEmail(pb.authStore.record.email || '');
-        } else if (guestUser) {
-            setUserEmail('Anonymous');
         }
 
         setLoading(false);
@@ -82,33 +77,12 @@ const Settings: React.FC = () => {
         }
     };
 
-    const handleGuestLogin = async () => {
-        setLoading(true);
-
-        try {
-            const result = await guestLogin();
-            if (result.success) {
-                setAuthenticated(true);
-                setIsGuest(true);
-                setUserEmail('Anonymous');
-                showMessage('Now playing as guest!', 'success');
-            } else {
-                showMessage(result.error || 'Guest login failed', 'error');
-            }
-        } catch (error) {
-            console.error('Guest login error:', error);
-            showMessage('Guest login failed', 'error');
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleLogout = async () => {
         setLoading(true);
         try {
             await logout();
             setAuthenticated(false);
-            setIsGuest(false);
             setUserEmail('');
             showMessage('Logged out successfully', 'success');
         } catch (error) {
@@ -246,20 +220,6 @@ const Settings: React.FC = () => {
                                     <Button type="submit" className="w-full" disabled={loading}>
                                         {loading ? 'Logging in...' : 'Login'}
                                     </Button>
-                                    <div className="flex items-center gap-2 w-full my-2">
-                                        <div className="flex-1 h-px bg-gray-300"></div>
-                                        <span className="text-sm text-gray-500">or</span>
-                                        <div className="flex-1 h-px bg-gray-300"></div>
-                                    </div>
-                                    <Button
-                                        variant="outline"
-                                        className="w-full"
-                                        onClick={handleGuestLogin}
-                                        type="button"
-                                        disabled={loading}
-                                    >
-                                        Continue as Guest
-                                    </Button>
                                     <Button
                                         variant="link"
                                         className="w-full"
@@ -280,60 +240,36 @@ const Settings: React.FC = () => {
                             <CardHeader>
                                 <CardTitle>Account Information</CardTitle>
                                 <CardDescription>
-                                    {isGuest ? 'You are playing as a guest' : 'You are currently logged in'}
+                                    You are currently logged in
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-4">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-sm text-gray-600">
-                                            {isGuest ? 'Playing as:' : 'Email:'}
-                                        </span>
+                                        <span className="text-sm text-gray-600">Email:</span>
                                         <span className="font-semibold">{userEmail}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-sm text-gray-600">Status:</span>
-                                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                                            isGuest
-                                                ? 'bg-orange-100 text-orange-800'
-                                                : 'bg-green-100 text-green-800'
-                                        }`}>
-                                            {isGuest ? 'Guest 👤' : 'Authenticated 🔐'}
+                                        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                                            Authenticated 🔐
                                         </span>
                                     </div>
-                                    {isGuest && (
-                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                            <h4 className="font-semibold text-blue-900 mb-2">Guest Account</h4>
-                                            <p className="text-sm text-blue-700">
-                                                You're playing as a guest. Your progress is saved locally but won't sync across devices.
-                                                Create an account to save your progress permanently.
-                                            </p>
-                                        </div>
-                                    )}
                                 </div>
                             </CardContent>
-                            <CardFooter className="flex gap-2">
+                            <CardFooter>
                                 <Button
                                     variant="outline"
                                     onClick={handleLogout}
                                     disabled={loading}
-                                    className="flex-1"
+                                    className="w-full"
                                 >
-                                    {loading ? 'Logging out...' : (isGuest ? 'Exit Guest Mode' : 'Logout')}
+                                    {loading ? 'Logging out...' : 'Logout'}
                                 </Button>
-                                {isGuest && (
-                                    <Button
-                                        onClick={() => router.push('/signup')}
-                                        className="flex-1"
-                                    >
-                                        Create Account
-                                    </Button>
-                                )}
                             </CardFooter>
                         </Card>
 
-                        {/* Change Password - Only for authenticated users */}
-                        {!isGuest && (
+                        {/* Change Password */}
                             <Card>
                                 <CardHeader>
                                     <CardTitle>Change Password</CardTitle>
@@ -385,7 +321,6 @@ const Settings: React.FC = () => {
                                     </form>
                                 </CardContent>
                             </Card>
-                        )}
                     </div>
                 )}
             </div>
