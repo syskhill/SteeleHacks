@@ -34,7 +34,7 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-[url('/wood.jpg')] bg-cover bg-repeat text-white flex flex-col items-center">
       <header className="text-center p-10">
-        <h1 className="text-4xl font-bold mb-4">Backyard Blackjack</h1>
+        <h1 className="text-4xl font-bold mb-4 font-serif text-stroke-navy">Backyard Blackjack</h1>
         {isLoggedIn && username && (
           <p className="text-xl text-yellow-400 mb-4">Playing as: {username}</p>
         )}
