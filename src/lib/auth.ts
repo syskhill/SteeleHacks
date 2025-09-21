@@ -13,6 +13,9 @@ export interface AppUser {
   isGuest: boolean;
 }
 
+type AuthSuccess<TUser> = { success: true; user: TUser };
+type AuthFailure = { success: false; error: string };
+
 interface OAuthProvider {
   name: string;
   authUrl?: string;
@@ -153,21 +156,27 @@ export function isGuestUser(): boolean {
 }
 
 /** Creates (or reuses) a guest profile and “logs in” locally */
-export async function guestLogin(preferredName?: string): Promise<AppUser> {
-  // Reuse existing guest if present
-  const existing = loadGuestFromStorage();
-  if (existing) return existing;
+export async function guestLogin(preferredName?: string): Promise<AuthResult<AppUser>> {
+  try {
+    // reuse existing guest if present
+    const existing = getGuestUser();
+    if (existing) {
+      return { success: true, user: existing };
+    }
 
-  // Create a fresh guest profile
-  const guest: AppUser = {
-    id: uuid(),
-    name: preferredName ?? `Guest_${Math.floor(Math.random() * 9000 + 1000)}`,
-    chips: DEFAULT_CHIPS,
-    isGuest: true,
-  };
+    // create a fresh guest profile
+    const guest: AppUser = {
+      id: uuid(),
+      name: preferredName ?? `Guest_${Math.floor(Math.random() * 9000 + 1000)}`,
+      chips: DEFAULT_CHIPS,
+      isGuest: true,
+    };
 
-  saveGuestToStorage(guest);
-  return guest;
+    saveGuestToStorage(guest);
+    return { success: true, user: guest };
+  } catch (e) {
+    return { success: false, error: "Guest login failed" };
+  }
 }
 
 /** Optional: helper to add/subtract chips for guest users only */
@@ -178,3 +187,5 @@ export function updateGuestChips(delta: number): AppUser | null {
   saveGuestToStorage(next);
   return next;
 }
+export type AuthResult<TUser> = AuthSuccess<TUser> | AuthFailure;
+
