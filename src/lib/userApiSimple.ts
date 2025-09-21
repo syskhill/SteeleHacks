@@ -9,7 +9,32 @@ interface User {
   updated: string;
 }
 
-export async function getAllUsers() {
+interface ApiResponse<T = any> {
+  success: boolean;
+  error?: string;
+  data?: T;
+}
+
+interface UserListResponse extends ApiResponse {
+  users?: any[];
+  totalPages?: number;
+  totalItems?: number;
+  page?: number;
+  perPage?: number;
+}
+
+interface UserResponse extends ApiResponse {
+  user?: any;
+}
+
+function handleError(error: unknown, defaultMessage: string): { success: false; error: string } {
+  return {
+    success: false,
+    error: error instanceof Error ? error.message : defaultMessage
+  };
+}
+
+export async function getAllUsers(): Promise<UserListResponse> {
   try {
     const records = await pb.collection('users').getList(1, 50, {
       sort: '-created',
@@ -22,14 +47,11 @@ export async function getAllUsers() {
       totalItems: records.totalItems
     };
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch users'
-    };
+    return handleError(error, 'Failed to fetch users');
   }
 }
 
-export async function getUserById(id: string) {
+export async function getUserById(id: string): Promise<UserResponse> {
   try {
     const record = await pb.collection('users').getOne(id);
 
@@ -38,14 +60,15 @@ export async function getUserById(id: string) {
       user: record
     };
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch user'
-    };
+    return handleError(error, 'Failed to fetch user');
   }
 }
 
-export async function getUsersWithPagination(page: number = 1, perPage: number = 20, filter?: string) {
+export async function getUsersWithPagination(
+  page: number = 1,
+  perPage: number = 20,
+  filter?: string
+): Promise<UserListResponse> {
   try {
     const options: any = {
       sort: '-created',
@@ -66,17 +89,27 @@ export async function getUsersWithPagination(page: number = 1, perPage: number =
       totalItems: records.totalItems
     };
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch users'
-    };
+    return handleError(error, 'Failed to fetch users');
   }
 }
 
-// Simple balance management using localStorage as fallback
-export async function getUserBalance(userId: string): Promise<{ success: boolean; balance?: number; error?: string }> {
+interface BalanceResponse extends ApiResponse {
+  balance?: number;
+}
+
+const DEFAULT_BALANCE = 1000;
+
+function getStoredBalance(userId: string): number {
+  const storedBalance = localStorage.getItem(`user_balance_${userId}`);
+  return storedBalance ? parseInt(storedBalance) : DEFAULT_BALANCE;
+}
+
+function setStoredBalance(userId: string, balance: number): void {
+  localStorage.setItem(`user_balance_${userId}`, balance.toString());
+}
+
+export async function getUserBalance(userId: string): Promise<BalanceResponse> {
   try {
-    // Try to get user record and check if it has balance field
     const record = await pb.collection('users').getOne(userId);
 
     if (record.balance !== undefined && record.balance !== null) {
@@ -84,80 +117,67 @@ export async function getUserBalance(userId: string): Promise<{ success: boolean
         success: true,
         balance: record.balance
       };
-    } else {
-      // If no balance field exists, use localStorage or default
-      const storedBalance = localStorage.getItem(`user_balance_${userId}`);
-      return {
-        success: true,
-        balance: storedBalance ? parseInt(storedBalance) : 1000
-      };
     }
-  } catch (error) {
-    // If user doesn't exist or other error, fall back to localStorage
-    const storedBalance = localStorage.getItem(`user_balance_${userId}`);
+
     return {
       success: true,
-      balance: storedBalance ? parseInt(storedBalance) : 1000
+      balance: getStoredBalance(userId)
+    };
+  } catch (error) {
+    return {
+      success: true,
+      balance: getStoredBalance(userId)
     };
   }
 }
 
-export async function updateUserBalance(userId: string, newBalance: number): Promise<{ success: boolean; balance?: number; error?: string }> {
+export async function updateUserBalance(userId: string, newBalance: number): Promise<BalanceResponse> {
   try {
-    // Try to update the user record with balance
     try {
       const record = await pb.collection('users').update(userId, {
         balance: newBalance
       });
 
-      // Also store in localStorage as backup
-      localStorage.setItem(`user_balance_${userId}`, newBalance.toString());
+      setStoredBalance(userId, newBalance);
 
       return {
         success: true,
         balance: record.balance || newBalance
       };
     } catch (updateError) {
-      // If update fails (probably because balance field doesn't exist), use localStorage only
-      localStorage.setItem(`user_balance_${userId}`, newBalance.toString());
+      setStoredBalance(userId, newBalance);
       return {
         success: true,
         balance: newBalance
       };
     }
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to update user balance'
-    };
+    return handleError(error, 'Failed to update user balance') as BalanceResponse;
   }
 }
 
-export async function addToUserBalance(userId: string, amount: number): Promise<{ success: boolean; balance?: number; error?: string }> {
+export async function addToUserBalance(userId: string, amount: number): Promise<BalanceResponse> {
   try {
     const currentResult = await getUserBalance(userId);
     if (!currentResult.success) {
       return currentResult;
     }
 
-    const newBalance = (currentResult.balance || 1000) + amount;
+    const newBalance = (currentResult.balance || DEFAULT_BALANCE) + amount;
     return await updateUserBalance(userId, newBalance);
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to add to user balance'
-    };
+    return handleError(error, 'Failed to add to user balance') as BalanceResponse;
   }
 }
 
-export async function subtractFromUserBalance(userId: string, amount: number): Promise<{ success: boolean; balance?: number; error?: string }> {
+export async function subtractFromUserBalance(userId: string, amount: number): Promise<BalanceResponse> {
   try {
     const currentResult = await getUserBalance(userId);
     if (!currentResult.success) {
       return currentResult;
     }
 
-    const currentBalance = currentResult.balance || 1000;
+    const currentBalance = currentResult.balance || DEFAULT_BALANCE;
 
     if (currentBalance < amount) {
       return {
@@ -169,30 +189,23 @@ export async function subtractFromUserBalance(userId: string, amount: number): P
     const newBalance = currentBalance - amount;
     return await updateUserBalance(userId, newBalance);
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to subtract from user balance'
-    };
+    return handleError(error, 'Failed to subtract from user balance') as BalanceResponse;
   }
 }
 
-export async function initializeUserBalance(userId: string, initialBalance: number = 1000): Promise<{ success: boolean; balance?: number; error?: string }> {
+export async function initializeUserBalance(userId: string, initialBalance: number = DEFAULT_BALANCE): Promise<BalanceResponse> {
   try {
     const existingResult = await getUserBalance(userId);
-    if (existingResult.success && existingResult.balance !== undefined && existingResult.balance !== 1000) {
-      return existingResult; // Return existing balance if it's not the default
+    if (existingResult.success && existingResult.balance !== undefined && existingResult.balance !== DEFAULT_BALANCE) {
+      return existingResult;
     }
 
     return await updateUserBalance(userId, initialBalance);
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to initialize user balance'
-    };
+    return handleError(error, 'Failed to initialize user balance') as BalanceResponse;
   }
 }
 
-// Round tracking functions
 interface RoundData {
   playerHand: any[];
   dealerHand: any[];
@@ -212,7 +225,16 @@ interface PlayerAction {
   dealerUpCard: any;
 }
 
-export async function createRound(userId: string, seed: string): Promise<{ success: boolean; roundId?: string; error?: string }> {
+interface RoundResponse extends ApiResponse {
+  roundId?: string;
+}
+
+interface RoundsListResponse extends ApiResponse {
+  rounds?: any[];
+  totalItems?: number;
+}
+
+export async function createRound(userId: string, seed: string): Promise<RoundResponse> {
   try {
     console.log('=== CREATING ROUND ===');
     console.log('Creating round with userId:', userId);
@@ -252,6 +274,7 @@ export async function createRound(userId: string, seed: string): Promise<{ succe
   } catch (error) {
     console.error('=== ROUND CREATION FAILED ===');
     console.error('Full create round error:', error);
+<<<<<<< HEAD
     console.error('Error details:', {
       message: error instanceof Error ? error.message : 'Unknown error',
       name: error instanceof Error ? error.name : 'Unknown',
@@ -261,10 +284,17 @@ export async function createRound(userId: string, seed: string): Promise<{ succe
       success: false,
       error: error instanceof Error ? error.message : 'Failed to create round'
     };
+=======
+    return handleError(error, 'Failed to create round') as RoundResponse;
+>>>>>>> f6d18eb (final commit)
   }
 }
 
-export async function updateRoundOutcomes(roundId: string, outcomes: RoundData, actions?: PlayerAction[]): Promise<{ success: boolean; error?: string }> {
+export async function updateRoundOutcomes(
+  roundId: string,
+  outcomes: RoundData,
+  actions?: PlayerAction[]
+): Promise<ApiResponse> {
   try {
     const updateData: any = {
       endedAt: new Date().toISOString(),
@@ -277,20 +307,14 @@ export async function updateRoundOutcomes(roundId: string, outcomes: RoundData, 
 
     await pb.collection('rounds').update(roundId, updateData);
 
-    return {
-      success: true
-    };
+    return { success: true };
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to update round outcomes'
-    };
+    return handleError(error, 'Failed to update round outcomes');
   }
 }
 
-export async function addActionToRound(roundId: string, action: PlayerAction): Promise<{ success: boolean; error?: string }> {
+export async function addActionToRound(roundId: string, action: PlayerAction): Promise<ApiResponse> {
   try {
-    // Get current round to append to existing actions
     const round = await pb.collection('rounds').getOne(roundId);
     const existingActions = round.actions || [];
 
@@ -298,33 +322,24 @@ export async function addActionToRound(roundId: string, action: PlayerAction): P
       actions: [...existingActions, action]
     });
 
-    return {
-      success: true
-    };
+    return { success: true };
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to add action to round'
-    };
+    return handleError(error, 'Failed to add action to round');
   }
 }
 
-export async function testRoundsCollection(): Promise<{ success: boolean; error?: string }> {
+export async function testRoundsCollection(): Promise<ApiResponse> {
   try {
-    // Try to get any records from rounds collection to test if it exists
     const records = await pb.collection('rounds').getList(1, 1);
     console.log('Rounds collection exists, found records:', records.totalItems);
     return { success: true };
   } catch (error) {
     console.error('Rounds collection test failed:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Rounds collection test failed'
-    };
+    return handleError(error, 'Rounds collection test failed');
   }
 }
 
-export async function testCreateRound(): Promise<{ success: boolean; error?: string }> {
+export async function testCreateRound(): Promise<ApiResponse> {
   try {
     const userId = pb.authStore.record?.id;
     if (!userId) {
@@ -348,17 +363,23 @@ export async function testCreateRound(): Promise<{ success: boolean; error?: str
     }
   } catch (error) {
     console.error('Test create round failed:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Test create round failed'
-    };
+    return handleError(error, 'Test create round failed');
   }
 }
 
-export async function getUserRounds(userId: string, page: number = 1, perPage: number = 10): Promise<{ success: boolean; rounds?: any[]; totalItems?: number; error?: string }> {
+function generateRequestKey(userId: string): string {
+  return `rounds_${userId}_${Date.now()}_${Math.random()}`;
+}
+
+export async function getUserRounds(
+  userId: string,
+  page: number = 1,
+  perPage: number = 100
+): Promise<RoundsListResponse> {
   try {
     console.log('Fetching rounds for userId:', userId);
 
+<<<<<<< HEAD
     // Check if user is authenticated
     if (!pb.authStore.isValid) {
       return {
@@ -435,16 +456,36 @@ export async function getUserRounds(userId: string, page: number = 1, perPage: n
       }
     }
 
+=======
+    // Fetch all rounds for debugging
+    const allRounds = await pb.collection('rounds').getList(1, 10, { sort: '-startedAt' });
+    console.log('All rounds:', allRounds.items.map(r => ({ id: r.id, userId: r.userId })));
+
+    // Check if the userId exists in any round
+    const userIds = allRounds.items.map(r => r.userId);
+    console.log('UserIds in rounds:', userIds);
+    console.log('Requested userId:', userId);
+    if (!userIds.includes(userId)) {
+      console.warn('Requested userId not found in any round!');
+    }
+
+    // Now fetch rounds for this user
+    const records = await pb.collection('rounds').getList(page, perPage, {
+      sort: '-startedAt',
+      filter: `userId = "${userId}"`
+    });
+    console.log('Filtered rounds:', records.items);
+>>>>>>> f6d18eb (final commit)
     return {
       success: true,
       rounds: records.items,
       totalItems: records.totalItems
     };
   } catch (error) {
-    console.error('Full error object:', error);
+    console.error('Error in getUserRounds:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Something went wrong while processing your request.'
+      error: error instanceof Error ? error.message : 'Failed to fetch rounds'
     };
   }
 }

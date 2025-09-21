@@ -6,8 +6,12 @@ import PocketBase from "pocketbase";
 export const pb = new PocketBase("https://e0871e346ffb.ngrok-free.app");
 =======
 // Initialize PocketBase
+<<<<<<< HEAD
 export const pb = new PocketBase('https://f40022cbd7d9.ngrok-free.app'); // Replace with your PocketBase URL
 >>>>>>> 463264e (rollback)
+=======
+export const pb = new PocketBase('https://ec7c12494f3f.ngrok-free.app'); // Replace with your PocketBase URL
+>>>>>>> f6d18eb (final commit)
 
 /** ---------- Types ---------- */
 export interface AppUser {

@@ -83,6 +83,12 @@ const BlackjackTable: React.FC = () => {
       setIsAuthenticated(authValid || !!guestUser);
       setUserId(currentUserId || guestUser?.id || '');
 
+      // Force login if not authenticated
+      if (!authValid || !currentUserId) {
+        router.push('/login');
+        return;
+      }
+
       if (authValid && currentUserId) {
         // User is authenticated with PocketBase, load balance from PocketBase
         try {
@@ -90,13 +96,19 @@ const BlackjackTable: React.FC = () => {
           if (balanceResult.success && balanceResult.balance !== undefined) {
             setGameState(prev => ({
               ...prev,
+<<<<<<< HEAD
               bankroll: balanceResult.balance !== undefined ? balanceResult.balance : 0,
               player: pb.authStore.record?.email || 'Anonymous'
+=======
+              bankroll: balanceResult.balance,
+              player: pb.authStore.record?.email || 'Player'
+>>>>>>> f6d18eb (final commit)
             }));
           }
         } catch (error) {
           console.error('Failed to load user balance:', error);
         }
+<<<<<<< HEAD
       } else if (guestUser) {
         // Guest user, use guest data
         setGameState(prev => ({
@@ -106,17 +118,19 @@ const BlackjackTable: React.FC = () => {
         }));
       } else {
         // Not authenticated, load from localStorage
+=======
+      }
+
+      // Clear any existing localStorage that might be corrupted
+      try {
+>>>>>>> f6d18eb (final commit)
         const storedState = localStorage.getItem('blackjackState');
         if (storedState) {
-          const parsedState = JSON.parse(storedState) as GameState;
-          setGameState(parsedState);
-
-          // If bet exists, start in betting mode with chips
-          if (parsedState.bet > 0) {
-            setChips([parsedState.bet]);
-            setGameMode('betting');
-          }
+          JSON.parse(storedState); // Test if it's valid JSON
         }
+      } catch (error) {
+        console.warn('Clearing corrupted localStorage:', error);
+        localStorage.removeItem('blackjackState');
       }
 
       setIsInitialized(true);
@@ -128,7 +142,11 @@ const BlackjackTable: React.FC = () => {
   // Save state to localStorage and sync balance with PocketBase
   useEffect(() => {
     const syncBalance = async () => {
-      localStorage.setItem('blackjackState', JSON.stringify(gameState));
+      try {
+        localStorage.setItem('blackjackState', JSON.stringify(gameState));
+      } catch (error) {
+        console.error('Failed to save state to localStorage:', error);
+      }
 
       // If user is authenticated with PocketBase, sync balance with PocketBase
       if (pb.authStore.isValid && userId && gameState.bankroll !== undefined) {
@@ -1062,8 +1080,13 @@ const BlackjackTable: React.FC = () => {
           </div>
 
           <div className="bg-black/30 px-4 py-2 rounded-full text-sm flex backdrop-blur-md items-center gap-4">
+<<<<<<< HEAD
             <span>Pitt Panthers: <span className="font-semibold">{isGuestUser() ? 'Anonymous' : (gameState.player || 'Anonymous')}</span></span>
             <span className={`px-3 py-1 rounded-full text-xs backdrop-blur-md font-bold ${pb.authStore.isValid ? 'bg-green-400/20 text-green-300' : isGuestUser() ? 'bg-orange-400/20 text-orange-300' : 'bg-yellow-400/20'}`}>
+=======
+            <span>Pitt Panthers: <span className="font-semibold">{gameState.player || 'Player'}</span></span>
+            <span className={`px-3 py-1 rounded-full text-xs backdrop-blur-md font-bold ${isAuthenticated ? 'bg-green-400/20 text-green-300' : 'bg-yellow-400/20'}`}>
+>>>>>>> f6d18eb (final commit)
               Balance: ${gameState.bankroll.toLocaleString()}
               {pb.authStore.isValid && <span className="ml-1">🔐</span>}
               {isGuestUser() && <span className="ml-1">👤</span>}

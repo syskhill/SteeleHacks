@@ -1,5 +1,5 @@
 import { getUserRounds } from './userApiSimple';
-import { getOptimalAction, analyzeDecision, Card, calculateHand, getCardValue } from './blackjackStrategy';
+import { Card } from './blackjackStrategy';
 
 export interface RoundData {
   id: string;
@@ -67,9 +67,14 @@ export interface GameStatistics {
 
 export async function getUserStatistics(userId: string): Promise<{ success: boolean; stats?: GameStatistics; error?: string }> {
   try {
-    const roundsResult = await getUserRounds(userId, 1, 100); // Get last 100 games
+    console.log('=== getUserStatistics Debug ===');
+    console.log('Processing userId:', userId);
+
+    const roundsResult = await getUserRounds(userId, 1, 100);
+    console.log('getRounds result:', roundsResult);
 
     if (!roundsResult.success || !roundsResult.rounds) {
+      console.log('No rounds found or error:', roundsResult.error);
       return {
         success: false,
         error: roundsResult.error || 'Failed to fetch rounds'
@@ -77,6 +82,8 @@ export async function getUserStatistics(userId: string): Promise<{ success: bool
     }
 
     const rounds = roundsResult.rounds as RoundData[];
+    console.log('Processing', rounds.length, 'rounds');
+    console.log('First round sample:', rounds[0]);
 
     // Initialize statistics
     let totalGames = 0;
@@ -96,28 +103,16 @@ export async function getUserStatistics(userId: string): Promise<{ success: bool
 
     // Analyze each round
     for (const round of rounds) {
-      if (!round.outcomes || !round.outcomes.playerHand || !round.outcomes.dealerHand) {
-        continue; // Skip incomplete rounds
-      }
+      if (!round.outcomes) continue;
 
-      // Ensure cards are properly structured
-      const playerHand = Array.isArray(round.outcomes.playerHand) ? round.outcomes.playerHand : [];
-      const dealerHand = Array.isArray(round.outcomes.dealerHand) ? round.outcomes.dealerHand : [];
-
-      // Check if cards have required properties
-      const validPlayerHand = playerHand.every((card: any) => card && typeof card === 'object' && card.value && card.suit);
-      const validDealerHand = dealerHand.every((card: any) => card && typeof card === 'object' && card.value && card.suit);
-
-      if (!validPlayerHand || !validDealerHand) {
-        continue; // Skip this round if cards are malformed
-      }
+      const outcomes = round.outcomes;
+      if (!outcomes.result || typeof outcomes.betAmount !== 'number') continue;
 
       totalGames++;
-      const outcomes = round.outcomes;
 
       // Basic statistics
       totalWagered += outcomes.betAmount;
-      totalPayout += outcomes.payout;
+      totalPayout += outcomes.payout || 0;
 
       if (outcomes.result === 'win') wins++;
       else if (outcomes.result === 'lose') losses++;
@@ -129,123 +124,9 @@ export async function getUserStatistics(userId: string): Promise<{ success: bool
       recentPerformance.push({
         date: round.endedAt || round.startedAt,
         result: outcomes.result,
-        profit: outcomes.result === 'win' ? outcomes.payout :
+        profit: outcomes.result === 'win' ? (outcomes.payout || 0) :
                 outcomes.result === 'push' ? 0 : -outcomes.betAmount
       });
-
-      // Strategy analysis - analyze each recorded action
-      if (outcomes.playerHand.length >= 2 && outcomes.dealerHand.length >= 1) {
-
-        // If we have recorded actions, use them to analyze decisions but show only one result per round
-        if (round.actions && round.actions.length > 0) {
-          // Analyze each action taken during the hand for strategy accuracy
-          let roundOptimalDecisions = 0;
-          let roundTotalDecisions = 0;
-
-          // Always use the FIRST action as the key decision for display (most strategically important)
-          const firstAction = round.actions[0];
-          const firstAnalysis = analyzeDecision(
-            firstAction.playerHandBefore,
-            firstAction.dealerUpCard,
-            firstAction.action,
-            firstAction.playerHandBefore.length === 2
-          );
-
-          let keyAction = firstAction.action; // Use original action from database
-          let keyOptimalAction = firstAnalysis.optimal.optimalAction;
-          let keyExplanation = firstAnalysis.explanation;
-          let worstDeviation = firstAnalysis.deviation;
-
-          // Track strategy accuracy for all actions in the round
-          for (const action of round.actions) {
-            totalDecisions++;
-            roundTotalDecisions++;
-
-            // Analyze this specific action
-            const analysis = analyzeDecision(
-              action.playerHandBefore,
-              action.dealerUpCard,
-              action.action,
-              action.playerHandBefore.length === 2 // Can double down only on first decision
-            );
-
-            if (analysis.wasOptimal) {
-              optimalDecisions++;
-              roundOptimalDecisions++;
-            } else {
-              // Only count suboptimal decisions if this was actually a suboptimal play
-              // Skip counting strategy deviations for forced actions (like stand after double down)
-              const isFirstAction = round.actions.indexOf(action) === 0;
-              const isStandAfterDouble = action.action === 'STAND' && round.actions.length > 1 && round.actions[0].action === 'DOUBLE';
-
-              if (isFirstAction || !isStandAfterDouble) {
-                suboptimalDecisions++;
-              }
-            }
-          }
-
-
-          // Add one consolidated analysis per round showing final hands
-          handAnalyses.push({
-            roundId: round.id,
-            date: round.endedAt || round.startedAt,
-            playerHand: outcomes.playerHand, // Final complete player hand
-            dealerUpCard: round.actions[0].dealerUpCard,
-            dealerFinalHand: outcomes.dealerHand,
-            finalResult: outcomes.result,
-            betAmount: outcomes.betAmount,
-            payout: outcomes.payout,
-            optimalAction: keyOptimalAction || 'N/A',
-            actualAction: keyAction || 'N/A',
-            wasOptimal: firstAnalysis.wasOptimal,
-            explanation: keyExplanation || 'Round analysis complete',
-            confidence: firstAnalysis.optimal.confidence
-          });
-        } else {
-          // Fallback to old inference method for rounds without recorded actions
-          totalDecisions++;
-
-          let assumedAction = 'STAND';
-          const initialHand = [outcomes.playerHand[0], outcomes.playerHand[1]];
-
-          if (outcomes.playerScore === 21 && outcomes.playerHand.length === 2) {
-            assumedAction = 'STAND';
-          } else if (outcomes.playerHand.length > 2) {
-            assumedAction = 'HIT';
-          } else {
-            assumedAction = 'STAND';
-          }
-
-          const analysis = analyzeDecision(
-            initialHand,
-            outcomes.dealerHand[0],
-            assumedAction,
-            true
-          );
-
-          if (analysis.wasOptimal) optimalDecisions++;
-          else {
-            suboptimalDecisions++;
-          }
-
-
-          handAnalyses.push({
-            roundId: round.id,
-            date: round.endedAt || round.startedAt,
-            playerHand: outcomes.playerHand, // Use final complete player hand
-            dealerUpCard: outcomes.dealerHand[0],
-            dealerFinalHand: outcomes.dealerHand,
-            finalResult: outcomes.result,
-            betAmount: outcomes.betAmount,
-            payout: outcomes.payout,
-            optimalAction: analysis.optimal.optimalAction,
-            actualAction: analysis.actualAction,
-            wasOptimal: analysis.wasOptimal,
-            explanation: analysis.explanation,
-            confidence: analysis.optimal.confidence
-          });
-        }
-      }
     }
 
     // Calculate derived statistics
@@ -273,7 +154,7 @@ export async function getUserStatistics(userId: string): Promise<{ success: bool
       suboptimalDecisions,
       strategyAccuracy,
       handAnalyses,
-      recentPerformance: recentPerformance.slice(0, 20) // Last 20 games
+      recentPerformance: recentPerformance.slice(0, 20)
     };
 
     return {
@@ -282,6 +163,7 @@ export async function getUserStatistics(userId: string): Promise<{ success: bool
     };
 
   } catch (error) {
+    console.error('Statistics calculation error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to calculate statistics'

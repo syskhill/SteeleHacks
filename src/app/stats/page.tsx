@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { pb } from '../../lib/auth';
 import { getUserStatistics, GameStatistics, HandAnalysisResult, formatCurrency, formatPercentage } from '../../lib/statistics';
 import { Card } from '../../lib/blackjackStrategy';
@@ -172,12 +173,15 @@ const HandAnalysisTable: React.FC<{ analyses: HandAnalysisResult[] }> = ({ analy
 };
 
 const StatsPage: React.FC = () => {
+  const router = useRouter();
   const [stats, setStats] = useState<GameStatistics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
+    let isCancelled = false;
+
     const loadStats = async () => {
       const authValid = pb.authStore.isValid;
       const userId = pb.authStore.record?.id;
@@ -185,28 +189,41 @@ const StatsPage: React.FC = () => {
       setIsAuthenticated(authValid);
 
       if (!authValid || !userId) {
-        setError('Please log in to view your statistics');
-        setLoading(false);
+        router.push('/login');
         return;
       }
 
       try {
         const result = await getUserStatistics(userId);
-        if (result.success && result.stats) {
-          setStats(result.stats);
-        } else {
-          setError(result.error || 'Failed to load statistics');
+
+        // Only update state if component is still mounted
+        if (!isCancelled) {
+          if (result.success && result.stats) {
+            setStats(result.stats);
+          } else {
+            setError(result.error || 'Failed to load statistics');
+          }
         }
       } catch (err) {
-        setError('Failed to load statistics');
-        console.error('Stats error:', err);
+        if (!isCancelled) {
+          setError('Failed to load statistics');
+          console.error('Stats error:', err);
+        }
       } finally {
-        setLoading(false);
+        if (!isCancelled) {
+          setLoading(false);
+        }
       }
     };
 
-    loadStats();
-  }, []);
+    // Add small delay to prevent rapid requests
+    const timer = setTimeout(loadStats, 100);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [router]);
 
   const refreshStats = async () => {
     setLoading(true);
@@ -214,8 +231,7 @@ const StatsPage: React.FC = () => {
 
     const userId = pb.authStore.record?.id;
     if (!userId) {
-      setError('Please log in to view your statistics');
-      setLoading(false);
+      router.push('/login');
       return;
     }
 
@@ -244,22 +260,6 @@ const StatsPage: React.FC = () => {
     );
   }
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-blue-800 text-white flex items-center justify-center p-4">
-        <div className="text-center max-w-md">
-          <h1 className="text-4xl font-bold mb-4 text-yellow-400">Blackjack Stats</h1>
-          <p className="text-lg mb-6">Please log in to view your game statistics and performance analysis.</p>
-          <button
-            onClick={() => window.location.href = '/login'}
-            className="px-6 py-3 bg-yellow-400 text-blue-900 font-bold rounded-lg hover:bg-yellow-300 transition-colors"
-          >
-            Go to Login
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   if (error) {
     return (
@@ -278,28 +278,25 @@ const StatsPage: React.FC = () => {
     );
   }
 
-  if (!stats || stats.totalGames === 0) {
-    return (
-      <div className="min-h-screen bg-blue-800 text-white flex items-center justify-center p-4">
-        <div className="text-center max-w-md">
-          <h1 className="text-4xl font-bold mb-4 text-yellow-400">Blackjack Stats</h1>
-          <p className="text-lg mb-6">No games played yet. Start playing to see your statistics!</p>
-          <button
-            onClick={() => window.location.href = '/table'}
-            className="px-6 py-3 bg-yellow-400 text-blue-900 font-bold rounded-lg hover:bg-yellow-300 transition-colors mr-4"
-          >
-            Play Now
-          </button>
-          <button
-            onClick={refreshStats}
-            className="px-6 py-3 bg-blue-700 hover:bg-blue-600 rounded-lg font-semibold transition-colors"
-          >
-            Refresh
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Create empty stats object if no stats or no games
+  const displayStats = (!stats || stats.totalGames === 0) ? {
+    totalGames: 0,
+    wins: 0,
+    losses: 0,
+    pushes: 0,
+    winRate: 0,
+    totalWagered: 0,
+    totalPayout: 0,
+    netProfit: 0,
+    blackjacks: 0,
+    averageBet: 0,
+    totalDecisions: 0,
+    optimalDecisions: 0,
+    suboptimalDecisions: 0,
+    strategyAccuracy: 0,
+    handAnalyses: [],
+    recentPerformance: []
+  } : stats;
 
   return (
     <div className="min-h-screen bg-blue-800 text-white p-4">
@@ -313,23 +310,23 @@ const StatsPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-blue-950 rounded-lg p-6 text-center">
             <h3 className="text-lg font-semibold mb-2 text-yellow-400">Games Played</h3>
-            <p className="text-3xl font-bold">{stats.totalGames}</p>
+            <p className="text-3xl font-bold">{displayStats.totalGames}</p>
           </div>
           <div className="bg-blue-950 rounded-lg p-6 text-center">
             <h3 className="text-lg font-semibold mb-2 text-yellow-400">Win Rate</h3>
-            <p className="text-3xl font-bold text-green-400">{formatPercentage(stats.winRate)}</p>
+            <p className="text-3xl font-bold text-green-400">{formatPercentage(displayStats.winRate)}</p>
           </div>
           <div className="bg-blue-950 rounded-lg p-6 text-center">
             <h3 className="text-lg font-semibold mb-2 text-yellow-400">Net Profit</h3>
             <p className={`text-3xl font-bold ${
-              stats.netProfit >= 0 ? 'text-green-400' : 'text-red-400'
+              displayStats.netProfit >= 0 ? 'text-green-400' : 'text-red-400'
             }`}>
-              {formatCurrency(stats.netProfit)}
+              {formatCurrency(displayStats.netProfit)}
             </p>
           </div>
           <div className="bg-blue-950 rounded-lg p-6 text-center">
             <h3 className="text-lg font-semibold mb-2 text-yellow-400">Strategy Accuracy</h3>
-            <p className="text-3xl font-bold text-purple-400">{formatPercentage(stats.strategyAccuracy)}</p>
+            <p className="text-3xl font-bold text-purple-400">{formatPercentage(displayStats.strategyAccuracy)}</p>
           </div>
         </div>
 
@@ -339,9 +336,9 @@ const StatsPage: React.FC = () => {
           <div className="bg-blue-950 rounded-lg p-6">
             <h3 className="text-xl font-bold mb-4 text-yellow-400">Game Results</h3>
             <BarChart data={[
-              { label: 'Wins', value: stats.wins, color: 'bg-green-500' },
-              { label: 'Losses', value: stats.losses, color: 'bg-red-500' },
-              { label: 'Pushes', value: stats.pushes, color: 'bg-yellow-500' }
+              { label: 'Wins', value: displayStats.wins, color: 'bg-green-500' },
+              { label: 'Losses', value: displayStats.losses, color: 'bg-red-500' },
+              { label: 'Pushes', value: displayStats.pushes, color: 'bg-yellow-500' }
             ]} />
           </div>
 
@@ -349,8 +346,8 @@ const StatsPage: React.FC = () => {
           <div className="bg-blue-950 rounded-lg p-6">
             <h3 className="text-xl font-bold mb-4 text-yellow-400">Strategy Analysis</h3>
             <BarChart data={[
-              { label: 'Optimal', value: stats.optimalDecisions, color: 'bg-green-500' },
-              { label: 'Suboptimal', value: stats.suboptimalDecisions, color: 'bg-red-500' }
+              { label: 'Optimal', value: displayStats.optimalDecisions, color: 'bg-green-500' },
+              { label: 'Suboptimal', value: displayStats.suboptimalDecisions, color: 'bg-red-500' }
             ]} />
           </div>
         </div>
@@ -363,22 +360,22 @@ const StatsPage: React.FC = () => {
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span>Total Wagered:</span>
-                <span className="font-semibold">{formatCurrency(stats.totalWagered)}</span>
+                <span className="font-semibold">{formatCurrency(displayStats.totalWagered)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Total Payouts:</span>
-                <span className="font-semibold">{formatCurrency(stats.totalPayout)}</span>
+                <span className="font-semibold">{formatCurrency(displayStats.totalPayout)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Average Bet:</span>
-                <span className="font-semibold">{formatCurrency(stats.averageBet)}</span>
+                <span className="font-semibold">{formatCurrency(displayStats.averageBet)}</span>
               </div>
               <div className="flex justify-between border-t border-gray-600 pt-3">
                 <span className="font-bold">Net Result:</span>
                 <span className={`font-bold ${
-                  stats.netProfit >= 0 ? 'text-green-400' : 'text-red-400'
+                  displayStats.netProfit >= 0 ? 'text-green-400' : 'text-red-400'
                 }`}>
-                  {formatCurrency(stats.netProfit)}
+                  {formatCurrency(displayStats.netProfit)}
                 </span>
               </div>
             </div>
@@ -388,20 +385,20 @@ const StatsPage: React.FC = () => {
           <div className="bg-blue-950 rounded-lg p-6">
             <h3 className="text-xl font-bold mb-4 text-yellow-400">Performance Metrics</h3>
             <ProgressBar
-              value={stats.wins}
-              max={stats.totalGames}
+              value={displayStats.wins}
+              max={displayStats.totalGames}
               color="bg-green-500"
               label="Win Rate"
             />
             <ProgressBar
-              value={stats.optimalDecisions}
-              max={stats.totalDecisions}
+              value={displayStats.optimalDecisions}
+              max={displayStats.totalDecisions}
               color="bg-purple-500"
               label="Strategy Accuracy"
             />
             <ProgressBar
-              value={stats.blackjacks}
-              max={stats.totalGames}
+              value={displayStats.blackjacks}
+              max={displayStats.totalGames}
               color="bg-yellow-500"
               label="Blackjack Rate"
             />
@@ -411,7 +408,7 @@ const StatsPage: React.FC = () => {
           <div className="bg-blue-950 rounded-lg p-6">
             <h3 className="text-xl font-bold mb-4 text-yellow-400">Recent Games</h3>
             <div className="space-y-2 max-h-48 overflow-y-auto">
-              {stats.recentPerformance.slice(0, 10).map((game, index) => (
+              {displayStats.recentPerformance.slice(0, 10).map((game, index) => (
                 <div key={index} className="flex justify-between items-center py-1 border-b border-gray-700">
                   <span className="text-sm">
                     {new Date(game.date).toLocaleDateString()}
@@ -440,8 +437,8 @@ const StatsPage: React.FC = () => {
         </div>
 
         {/* Hand Analysis Table */}
-        {stats.handAnalyses.length > 0 && (
-          <HandAnalysisTable analyses={stats.handAnalyses} />
+        {displayStats.handAnalyses.length > 0 && (
+          <HandAnalysisTable analyses={displayStats.handAnalyses} />
         )}
 
         {/* Action Buttons */}

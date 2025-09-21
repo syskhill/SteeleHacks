@@ -47,12 +47,18 @@ const Home = () => {
         height={300}
       />
       <main className="flex flex-col items-center space-y-6 mt-10">
-        <button
-          className="bg-yellow-500 text-black px-6 py-2 rounded-lg text-xl w-64"
-          onClick={() => router.push('/table')}
-        >
-          Start Game
-        </button>
+        {isLoggedIn ? (
+          <button
+            className="bg-yellow-500 text-black px-6 py-2 rounded-lg text-xl w-64"
+            onClick={() => router.push('/table')}
+          >
+            Start Game
+          </button>
+        ) : (
+          <div className="text-center">
+            <p className="text-lg mb-4">Please log in to play</p>
+          </div>
+        )}
         <div className="space-y-4 w-64">
           {isLoggedIn ? (
             <button
@@ -74,17 +80,6 @@ const Home = () => {
                 onClick={() => router.push('/signup')}
               >
                 Sign Up
-              </button>
-              <div className="flex items-center gap-2 w-full my-2">
-                <div className="flex-1 h-px bg-gray-400"></div>
-                <span className="text-sm text-gray-300">or</span>
-                <div className="flex-1 h-px bg-gray-400"></div>
-              </div>
-              <button
-                className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg text-xl w-full transition-colors"
-                onClick={() => router.push('/table')}
-              >
-                Continue as Guest
               </button>
             </>
           )}
